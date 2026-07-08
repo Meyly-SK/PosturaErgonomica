@@ -17,6 +17,7 @@
 #include "../body/HumanBody.h"
 #include "../simulation/ScenarioManager.h"
 #include "../simulation/RiskAnalyzer.h"
+#include "../ui/UI.h"
 
 // Ventana global al módulo (simple por ahora)
 static GLFWwindow* gVentana = nullptr;
@@ -111,6 +112,9 @@ bool App::inicializar()
         // Aplicar postura inicial (postura neutra)
         gCuerpo.setScenario(gEscenarios.getActual());
 
+        // Inicializar panel UI (ImGui)
+        UI::inicializar(gVentana);
+
         gDemoInicializada = true;
     }
 
@@ -189,6 +193,10 @@ void App::actualizar(float /*deltaTiempo*/)
     // H4: calcular riesgo del escenario activo y colorear el cuerpo
     const RiskData riesgo = gAnalizador.analizar(gEscenarios.getActual());
     gCuerpo.applyRisk(riesgo);
+
+    // H5: preparar nuevo frame de UI
+    UI::nuevaFrame();
+    UI::dibujarPanel(gEscenarios, riesgo);
 }
 
 void App::renderizar()
@@ -198,6 +206,9 @@ void App::renderizar()
 
     gCuerpo.actualizarJerarquia();
     gCuerpo.dibujar(gRenderer, gCubo, gCilindro, gEsfera, gCamara);
+
+    // H5: renderizar panel UI encima de la escena 3D
+    UI::renderizar();
 }
 
 void App::dibujarDemoCubo()
@@ -210,6 +221,8 @@ void App::dibujarDemoCubo()
 
 void App::cerrar()
 {
+    UI::liberar();
+
     if (gVentana)
     {
         glfwDestroyWindow(gVentana);
