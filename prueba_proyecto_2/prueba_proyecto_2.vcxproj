@@ -152,6 +152,7 @@
     <ClCompile Include="src\graphics\Renderer.cpp" />
     <ClCompile Include="src\body\BodyPart.cpp" />
     <ClCompile Include="src\body\HumanBody.cpp" />
+    <ClCompile Include="src\simulation\ScenarioManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\App.h" />
@@ -162,6 +163,9 @@
     <ClInclude Include="src\graphics\Camera.h" />
     <ClInclude Include="src\graphics\Renderer.h" />
     <ClInclude Include="src\simulation\Types.h" />
+    <ClInclude Include="src\simulation\ScenarioManager.h" />
+    <ClInclude Include="src\simulation\escenarios\Escenario_Neutro.h" />
+    <ClInclude Include="src\simulation\escenarios\Escenario_BrazoDerecho90.h" />
     <ClInclude Include="src\body\BodyPart.h" />
     <ClInclude Include="src\body\HumanBody.h" />
   </ItemGroup>

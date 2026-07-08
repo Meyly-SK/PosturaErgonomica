@@ -15,7 +15,7 @@
 #include "../graphics/Renderer.h"
 
 #include "../body/HumanBody.h"
-#include "../simulation/Types.h"
+#include "../simulation/ScenarioManager.h"
 
 // Ventana global al módulo (simple por ahora)
 static GLFWwindow* gVentana = nullptr;
@@ -27,11 +27,7 @@ static Mesh gCubo;
 static Mesh gCilindro;
 static Mesh gEsfera;
 static HumanBody gCuerpo;
-
-// Escenarios de prueba (Hito 3)
-// Escenario 0 = postura neutra, Escenario 1 = brazo derecho 90°
-static ScenarioData gEscenarios[2];
-static int gIndiceEscenario = 0;
+static ScenarioManager gEscenarios;
 
 int App::ejecutar()
 {
@@ -107,21 +103,21 @@ bool App::inicializar()
         gCilindro = PrimitiveFactory::crearCilindro(0.5f, 1.0f, 20);
         gEsfera   = PrimitiveFactory::crearEsfera(0.5f, 20, 12);
 
-        // Inicializar cuerpo modular
+        // Inicializar cuerpo + escenarios
         gCuerpo.inicializar();
-
-        // ---- Definir escenarios de prueba ----
-        // Escenario 0: postura neutra (todos los angulos en 0)
-        gEscenarios[0].nombre = "Postura neutra";
-
-        // Escenario 1: brazo derecho levantado 90 grados
-        gEscenarios[1].nombre          = "Brazo derecho 90";
-        gEscenarios[1].anguloBrazoDer  = 90.0f;
+        gEscenarios.inicializarEscenariosDefault();
+        // Aplicar postura inicial (postura neutra)
+        gCuerpo.setScenario(gEscenarios.getActual());
 
         gDemoInicializada = true;
     }
 
-    std::cout << "App inicializada. Tecla N = siguiente escenario.\n";
+    std::cout << "ErgoSim 3D iniciado.\n";
+    std::cout << "  N/P     = siguiente/anterior escenario\n";
+    std::cout << "  1-7     = filtros debug de partes\n";
+    std::cout << "  WASD    = mover camara  |  Mouse = girar\n";
+    std::cout << "  M       = toggle mouse  |  ESC = salir\n";
+    std::cout << "Escenario actual: " << gEscenarios.getActual().nombre << "\n";
     return true;
 }
 
@@ -164,23 +160,23 @@ void App::procesarEntrada(float deltaTiempo)
     const bool tN = glfwGetKey(gVentana, GLFW_KEY_N) == GLFW_PRESS;
     const bool tP = glfwGetKey(gVentana, GLFW_KEY_P) == GLFW_PRESS;
 
-    constexpr int numEscenarios = 2;
-
     if (tN && !tNAntes)
     {
-        gIndiceEscenario = (gIndiceEscenario + 1) % numEscenarios;
-        gCuerpo.setScenario(gEscenarios[gIndiceEscenario]);
-        std::cout << "Escenario [" << (gIndiceEscenario + 1) << "/"
-                  << numEscenarios << "]: "
-                  << gEscenarios[gIndiceEscenario].nombre << "\n";
+        gEscenarios.siguiente();
+        gCuerpo.setScenario(gEscenarios.getActual());
+        std::cout << "Escenario ["
+                  << (gEscenarios.getIndiceActual() + 1) << "/"
+                  << gEscenarios.getTotalEscenarios() << "]: "
+                  << gEscenarios.getActual().nombre << "\n";
     }
     if (tP && !tPAntes)
     {
-        gIndiceEscenario = (gIndiceEscenario - 1 + numEscenarios) % numEscenarios;
-        gCuerpo.setScenario(gEscenarios[gIndiceEscenario]);
-        std::cout << "Escenario [" << (gIndiceEscenario + 1) << "/"
-                  << numEscenarios << "]: "
-                  << gEscenarios[gIndiceEscenario].nombre << "\n";
+        gEscenarios.anterior();
+        gCuerpo.setScenario(gEscenarios.getActual());
+        std::cout << "Escenario ["
+                  << (gEscenarios.getIndiceActual() + 1) << "/"
+                  << gEscenarios.getTotalEscenarios() << "]: "
+                  << gEscenarios.getActual().nombre << "\n";
     }
     tNAntes = tN;
     tPAntes = tP;
@@ -188,7 +184,7 @@ void App::procesarEntrada(float deltaTiempo)
 
 void App::actualizar(float /*deltaTiempo*/)
 {
-    // Aqui se integrara ScenarioManager y RiskAnalyzer en hitos posteriores.
+    // Aqui se integrara RiskAnalyzer en el Hito 4.
 }
 
 void App::renderizar()
