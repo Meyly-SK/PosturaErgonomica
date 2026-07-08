@@ -81,6 +81,9 @@ vcpkg-configuration.json
 *.FileListAbsolute.txt
 ipch/
 
+# --- ImGui runtime files ---
+imgui.ini
+
 # --- Assets temporales / dumps ---
 *.tmp
 *.bak

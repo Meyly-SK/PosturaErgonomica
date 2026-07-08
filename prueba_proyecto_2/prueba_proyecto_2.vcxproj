@@ -170,6 +170,7 @@
     <ClInclude Include="src\ui\UI.h" />
     <ClInclude Include="src\simulation\escenarios\Escenario_Neutro.h" />
     <ClInclude Include="src\simulation\escenarios\Escenario_BrazoDerecho90.h" />
+    <ClInclude Include="src\simulation\escenarios\Escenario_LevantamientoIncorrecto.h" />
     <ClInclude Include="src\body\BodyPart.h" />
     <ClInclude Include="src\body\HumanBody.h" />
   </ItemGroup>
