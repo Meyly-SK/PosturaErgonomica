@@ -1,6 +1,7 @@
 #include "HumanBody.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // ---------------------------------------------------------------------------
 // Helper interno
@@ -242,6 +243,14 @@ void HumanBody::inicializar()
         agregarParte(pd);
     }
 
+    // Guardar pose base (postura neutra) en cada parte
+    for (BodyPart& p : mPartes)
+    {
+        p.posicionBase    = p.posicion;
+        p.rotacionBase    = p.rotacionEulerGrados;
+        p.colorBase       = p.color;
+    }
+
     // Calcular matrices mundo iniciales
     actualizarJerarquia();
 }
@@ -263,6 +272,153 @@ void HumanBody::actualizarJerarquia()
         else
         {
             p.matrizMundo = mPartes[p.indicePadre].matrizMundo * local;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// setScenario
+//
+// Para rotar un segmento del cuerpo desde su articulación (sin jerarquía padre/hijo),
+// usamos la fórmula:
+//   posNueva = pivot + Rot(angulo) * (posBase - pivot)
+//   rotNueva = rotBase + angulo (solo en el eje correspondiente)
+//
+// El pivot de cada grupo de partes:
+//   Brazo derecho: tope del BrazoSupDer = posBase.y + escala.y/2
+//   Brazo izquierdo: idem lado izquierdo
+// ---------------------------------------------------------------------------
+void HumanBody::setScenario(const ScenarioData& escenario)
+{
+    // Restaurar pose base primero
+    for (BodyPart& p : mPartes)
+    {
+        p.posicion            = p.posicionBase;
+        p.rotacionEulerGrados = p.rotacionBase;
+    }
+
+    // ---- Brazo derecho ----
+    if (escenario.anguloBrazoDer != 0.0f)
+    {
+        // Pivot = tope del BrazoSupDer (hombro derecho)
+        // posicionBase.y + escala.y/2 = 4.35 + 0.55 = 4.90
+        const glm::vec3 pivotDer = {0.82f, 4.90f, 0.0f};
+        // Positivo en Z = antihorario visto desde +Z.
+        // Para el brazo derecho (X positivo), "subir" = rotar en sentido antihorario = positivo.
+        const float angDer = glm::radians(escenario.anguloBrazoDer);
+
+        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angDer, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        for (BodyPart& p : mPartes)
+        {
+            const std::string& n = p.nombre;
+            if (n == "BrazoSupDer" || n == "AntebrazoDer" || n == "ManoDer")
+            {
+                // Calcular offset desde el pivot
+                const glm::vec4 offset = {
+                    p.posicionBase.x - pivotDer.x,
+                    p.posicionBase.y - pivotDer.y,
+                    0.0f, 0.0f
+                };
+                const glm::vec4 rotado = rot * offset;
+                p.posicion.x = pivotDer.x + rotado.x;
+                p.posicion.y = pivotDer.y + rotado.y;
+
+                // La orientación del cilindro sigue el mismo ángulo de rotación
+                p.rotacionEulerGrados.z = p.rotacionBase.z + escenario.anguloBrazoDer;
+            }
+        }
+    }
+
+    // ---- Brazo izquierdo ----
+    if (escenario.anguloBrazoIzq != 0.0f)
+    {
+        const glm::vec3 pivotIzq = {-0.82f, 4.90f, 0.0f};
+        // Para el brazo izquierdo (X negativo), "subir" = rotar en sentido horario = negativo.
+        const float angIzq = glm::radians(-escenario.anguloBrazoIzq);
+
+        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angIzq, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        for (BodyPart& p : mPartes)
+        {
+            const std::string& n = p.nombre;
+            if (n == "BrazoSupIzq" || n == "AntebrazoIzq" || n == "ManoIzq")
+            {
+                const glm::vec4 offset = {
+                    p.posicionBase.x - pivotIzq.x,
+                    p.posicionBase.y - pivotIzq.y,
+                    0.0f, 0.0f
+                };
+                const glm::vec4 rotado = rot * offset;
+                p.posicion.x = pivotIzq.x + rotado.x;
+                p.posicion.y = pivotIzq.y + rotado.y;
+
+                p.rotacionEulerGrados.z = p.rotacionBase.z - escenario.anguloBrazoIzq;
+            }
+        }
+    }
+
+    // ---- Torso ----
+    if (escenario.anguloTorso != 0.0f)
+    {
+        // Pivot lumbar ≈ parte baja del torso (Y=2.80)
+        const glm::vec3 pivotTorso = {0.0f, 2.80f, 0.0f};
+        const float angT = glm::radians(escenario.anguloTorso);
+        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angT, glm::vec3(1.0f, 0.0f, 0.0f));
+
+        // Partes que siguen al torso
+        const std::vector<std::string> partesTorso = {
+            "Pecho", "ZonaLumbar", "Cuello", "Cabeza",
+            "BrazoSupIzq", "AntebrazoIzq", "ManoIzq",
+            "BrazoSupDer", "AntebrazoDer", "ManoDer"
+        };
+        for (BodyPart& p : mPartes)
+        {
+            for (const auto& nombre : partesTorso)
+            {
+                if (p.nombre == nombre)
+                {
+                    const glm::vec4 offset = {
+                        p.posicion.x - pivotTorso.x,
+                        p.posicion.y - pivotTorso.y,
+                        p.posicion.z - pivotTorso.z,
+                        0.0f
+                    };
+                    const glm::vec4 rotado = rot * offset;
+                    p.posicion.x = pivotTorso.x + rotado.x;
+                    p.posicion.y = pivotTorso.y + rotado.y;
+                    p.posicion.z = pivotTorso.z + rotado.z;
+                    p.rotacionEulerGrados.x = p.rotacionBase.x + escenario.anguloTorso;
+                    break;
+                }
+            }
+        }
+    }
+
+    actualizarJerarquia();
+}
+
+// ---------------------------------------------------------------------------
+// applyRisk — colorea partes según el nivel de riesgo por zona
+// ---------------------------------------------------------------------------
+void HumanBody::applyRisk(const RiskData& riesgo)
+{
+    auto colorRiesgo = [](float r) -> glm::vec3 {
+        if (r < 30.0f) return {0.20f, 0.85f, 0.20f};
+        if (r < 60.0f) return {1.00f, 0.85f, 0.10f};
+        return               {0.90f, 0.15f, 0.15f};
+    };
+
+    for (BodyPart& p : mPartes)
+    {
+        switch (p.zona)
+        {
+        case ZonaRiesgo::Cuello:   p.color = colorRiesgo(riesgo.riesgoCuello);   break;
+        case ZonaRiesgo::Lumbar:   p.color = colorRiesgo(riesgo.riesgoLumbar);   break;
+        case ZonaRiesgo::Hombros:  p.color = colorRiesgo(riesgo.riesgoHombros);  break;
+        case ZonaRiesgo::Rodillas: p.color = colorRiesgo(riesgo.riesgoRodillas); break;
+        case ZonaRiesgo::Ninguna:
+        default: break;
         }
     }
 }

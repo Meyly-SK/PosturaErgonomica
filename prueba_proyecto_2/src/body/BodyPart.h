@@ -33,8 +33,14 @@ struct BodyPart
     glm::vec3 rotacionEulerGrados{0.0f}; // (x,y,z) en grados
     glm::vec3 escala{1.0f};
 
+    // Pose base (postura neutra) — se guarda en inicializar() y NO se modifica.
+    // setScenario() calcula la posicion/rotacion nueva a partir de estos valores.
+    glm::vec3 posicionBase{0.0f};
+    glm::vec3 rotacionBase{0.0f};
+
     // Color base (se reemplazará por color según riesgo)
     glm::vec3 color{0.8f, 0.8f, 0.8f};
+    glm::vec3 colorBase{0.8f, 0.8f, 0.8f}; // color original (para restaurar)
 
     // Matriz calculada por HumanBody::actualizarJerarquia()
     glm::mat4 matrizMundo{1.0f};

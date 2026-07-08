@@ -15,12 +15,11 @@
 #include "../graphics/Renderer.h"
 
 #include "../body/HumanBody.h"
+#include "../simulation/Types.h"
 
 // Ventana global al módulo (simple por ahora)
-// Más adelante se puede encapsular mejor.
 static GLFWwindow* gVentana = nullptr;
 
-// Recursos de demo (Hito 1)
 static bool gDemoInicializada = false;
 static Renderer gRenderer;
 static Camera gCamara;
@@ -28,6 +27,11 @@ static Mesh gCubo;
 static Mesh gCilindro;
 static Mesh gEsfera;
 static HumanBody gCuerpo;
+
+// Escenarios de prueba (Hito 3)
+// Escenario 0 = postura neutra, Escenario 1 = brazo derecho 90°
+static ScenarioData gEscenarios[2];
+static int gIndiceEscenario = 0;
 
 int App::ejecutar()
 {
@@ -37,22 +41,18 @@ int App::ejecutar()
         return -1;
     }
 
-    // Tiempo para deltaTime
     float ultimoTiempo = static_cast<float>(glfwGetTime());
 
-    // Loop principal
     while (!glfwWindowShouldClose(gVentana))
     {
         const float tiempoActual = static_cast<float>(glfwGetTime());
-        const float deltaTiempo = tiempoActual - ultimoTiempo;
+        const float deltaTiempo  = tiempoActual - ultimoTiempo;
         ultimoTiempo = tiempoActual;
 
         glfwPollEvents();
-
         procesarEntrada(deltaTiempo);
         actualizar(deltaTiempo);
         renderizar();
-
         glfwSwapBuffers(gVentana);
     }
 
@@ -68,12 +68,11 @@ bool App::inicializar()
         return false;
     }
 
-    // OpenGL 3.3 Core
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    gVentana = glfwCreateWindow(800, 600, "ErgoSim 3D (base)", nullptr, nullptr);
+    gVentana = glfwCreateWindow(800, 600, "ErgoSim 3D", nullptr, nullptr);
     if (!gVentana)
     {
         std::cout << "Error: no se pudo crear la ventana.\n";
@@ -82,25 +81,19 @@ bool App::inicializar()
 
     glfwMakeContextCurrent(gVentana);
 
-    // Inicializar GLEW (requiere contexto activo)
     if (glewInit() != GLEW_OK)
     {
         std::cout << "Error: no se pudo inicializar GLEW.\n";
         return false;
     }
 
-    // Estado inicial
     glViewport(0, 0, 800, 600);
     glEnable(GL_DEPTH_TEST);
 
-    // Inicializar demo del cubo (graphics)
     if (!gDemoInicializada)
     {
         gCamara.setAspecto(800.0f, 600.0f);
-
-        // Conectar input a cámara (modo FPS)
         Input::setCamera(&gCamara);
-        // Opcional: capturar mouse al inicio (se puede alternar con tecla M)
         Input::setCapturaMouse(true);
         glfwSetInputMode(gVentana, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -110,17 +103,25 @@ bool App::inicializar()
             return false;
         }
 
-        gCubo = PrimitiveFactory::crearCubo();
+        gCubo     = PrimitiveFactory::crearCubo();
         gCilindro = PrimitiveFactory::crearCilindro(0.5f, 1.0f, 20);
-        gEsfera = PrimitiveFactory::crearEsfera(0.5f, 20, 12);
+        gEsfera   = PrimitiveFactory::crearEsfera(0.5f, 20, 12);
 
         // Inicializar cuerpo modular
         gCuerpo.inicializar();
 
+        // ---- Definir escenarios de prueba ----
+        // Escenario 0: postura neutra (todos los angulos en 0)
+        gEscenarios[0].nombre = "Postura neutra";
+
+        // Escenario 1: brazo derecho levantado 90 grados
+        gEscenarios[1].nombre          = "Brazo derecho 90";
+        gEscenarios[1].anguloBrazoDer  = 90.0f;
+
         gDemoInicializada = true;
     }
 
-    std::cout << "App inicializada correctamente.\n";
+    std::cout << "App inicializada. Tecla N = siguiente escenario.\n";
     return true;
 }
 
@@ -128,23 +129,12 @@ void App::procesarEntrada(float deltaTiempo)
 {
     Input::procesar(gVentana, deltaTiempo);
 
-    // -------------------------------------------------------------
-    // Debug del cuerpo: teclas 1..6 para ver partes por separado.
-    // Esto ayuda a ajustar proporciones "parte por parte".
-    // 1: Completo
-    // 2: Cabeza + Cuello
-    // 3: Hombros
-    // 4: Brazo izquierdo
-    // 5: Brazo derecho
-    // 6: Piernas (izq/der alternando con 6 y 7)
-    // -------------------------------------------------------------
-    static bool tecla1Antes = false;
-    static bool tecla2Antes = false;
-    static bool tecla3Antes = false;
-    static bool tecla4Antes = false;
-    static bool tecla5Antes = false;
-    static bool tecla6Antes = false;
-    static bool tecla7Antes = false;
+    // ------------------------------------------------------------------
+    // Debug: teclas 1-7 para ver partes por separado
+    // ------------------------------------------------------------------
+    static bool tecla1Antes = false, tecla2Antes = false, tecla3Antes = false;
+    static bool tecla4Antes = false, tecla5Antes = false;
+    static bool tecla6Antes = false, tecla7Antes = false;
 
     const bool t1 = glfwGetKey(gVentana, GLFW_KEY_1) == GLFW_PRESS;
     const bool t2 = glfwGetKey(gVentana, GLFW_KEY_2) == GLFW_PRESS;
@@ -162,43 +152,60 @@ void App::procesarEntrada(float deltaTiempo)
     if (t6 && !tecla6Antes) gCuerpo.setModoDebug(HumanBody::ModoDebug::SoloPiernaIzq);
     if (t7 && !tecla7Antes) gCuerpo.setModoDebug(HumanBody::ModoDebug::SoloPiernaDer);
 
-    tecla1Antes = t1;
-    tecla2Antes = t2;
-    tecla3Antes = t3;
-    tecla4Antes = t4;
-    tecla5Antes = t5;
-    tecla6Antes = t6;
-    tecla7Antes = t7;
+    tecla1Antes = t1; tecla2Antes = t2; tecla3Antes = t3;
+    tecla4Antes = t4; tecla5Antes = t5;
+    tecla6Antes = t6; tecla7Antes = t7;
+
+    // ------------------------------------------------------------------
+    // Cambio de escenario: N = siguiente, P = anterior
+    // ------------------------------------------------------------------
+    static bool tNAntes = false;
+    static bool tPAntes = false;
+    const bool tN = glfwGetKey(gVentana, GLFW_KEY_N) == GLFW_PRESS;
+    const bool tP = glfwGetKey(gVentana, GLFW_KEY_P) == GLFW_PRESS;
+
+    constexpr int numEscenarios = 2;
+
+    if (tN && !tNAntes)
+    {
+        gIndiceEscenario = (gIndiceEscenario + 1) % numEscenarios;
+        gCuerpo.setScenario(gEscenarios[gIndiceEscenario]);
+        std::cout << "Escenario [" << (gIndiceEscenario + 1) << "/"
+                  << numEscenarios << "]: "
+                  << gEscenarios[gIndiceEscenario].nombre << "\n";
+    }
+    if (tP && !tPAntes)
+    {
+        gIndiceEscenario = (gIndiceEscenario - 1 + numEscenarios) % numEscenarios;
+        gCuerpo.setScenario(gEscenarios[gIndiceEscenario]);
+        std::cout << "Escenario [" << (gIndiceEscenario + 1) << "/"
+                  << numEscenarios << "]: "
+                  << gEscenarios[gIndiceEscenario].nombre << "\n";
+    }
+    tNAntes = tN;
+    tPAntes = tP;
 }
 
 void App::actualizar(float /*deltaTiempo*/)
 {
-    // Por ahora no hay simulación.
-    // Aquí más adelante se actualizarán escenario, riesgo y transforms.
+    // Aqui se integrara ScenarioManager y RiskAnalyzer en hitos posteriores.
 }
 
 void App::renderizar()
 {
-    // Render mínimo: limpiar pantalla.
     glClearColor(0.10f, 0.10f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Demo Hito 2: pseudo-cuerpo
     gCuerpo.actualizarJerarquia();
     gCuerpo.dibujar(gRenderer, gCubo, gCilindro, gEsfera, gCamara);
 }
 
 void App::dibujarDemoCubo()
 {
-    // Mantengo este método por si quieren volver a la demo del cubo,
-    // pero ya no se usa en renderizar() porque ahora mostramos el pseudo-cuerpo.
     const float t = static_cast<float>(glfwGetTime());
     glm::mat4 modelo(1.0f);
     modelo = glm::rotate(modelo, t * 0.6f, glm::vec3(0.3f, 1.0f, 0.0f));
-
-    const glm::vec3 color(0.2f, 0.8f, 0.9f);
-
-    gRenderer.dibujar(gCubo, modelo, color, gCamara);
+    gRenderer.dibujar(gCubo, modelo, {0.2f, 0.8f, 0.9f}, gCamara);
 }
 
 void App::cerrar()
@@ -208,6 +215,5 @@ void App::cerrar()
         glfwDestroyWindow(gVentana);
         gVentana = nullptr;
     }
-
     glfwTerminate();
 }

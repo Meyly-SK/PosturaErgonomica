@@ -8,6 +8,7 @@
 #include "../graphics/Mesh.h"
 #include "../graphics/Renderer.h"
 #include "../graphics/Camera.h"
+#include "../simulation/Types.h"
 
 // Cuerpo humano simplificado (pseudo-cuerpo) hecho por partes.
 // Se construye como una jerarquía de BodyPart usando parentIndex.
@@ -31,6 +32,12 @@ public:
 
     // Recalcula matrices mundo en base a la jerarquía.
     void actualizarJerarquia();
+
+    // Aplica una postura: rota partes alrededor de sus pivotes usando GLM.
+    void setScenario(const ScenarioData& escenario);
+
+    // Colorea zonas según nivel de riesgo (verde/amarillo/rojo).
+    void applyRisk(const RiskData& riesgo);
 
     // Configuración de debug
     void setModoDebug(ModoDebug modo);
