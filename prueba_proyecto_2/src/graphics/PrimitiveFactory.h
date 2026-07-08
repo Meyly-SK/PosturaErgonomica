@@ -7,17 +7,14 @@
 class PrimitiveFactory
 {
 public:
-    // Crea un cubo centrado en el origen, tamaño 1 (de -0.5 a +0.5).
+    // ---- Sin UV (modo original) ----
     static Mesh crearCubo();
-
-    // Crea un cilindro "de pie" (eje Y), centrado en el origen.
-    // - radio: tamaño en X/Z
-    // - alto: tamaño en Y
-    // - segmentos: calidad (más segmentos = más redondo)
     static Mesh crearCilindro(float radio, float alto, int segmentos);
-
-    // Crea una esfera centrada en el origen.
-    // - radio: tamaño
-    // - sectores/anillos: calidad
     static Mesh crearEsfera(float radio, int sectores, int anillos);
+
+    // ---- Con UV (para texturas) ----
+    // Las UVs cubren la malla completa con repetición para texturas de madera.
+    static Mesh crearCuboUV();
+    static Mesh crearCilindroUV(float radio, float alto, int segmentos);
+    static Mesh crearEsferaUV(float radio, int sectores, int anillos);
 };

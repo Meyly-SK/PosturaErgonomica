@@ -43,12 +43,21 @@ public:
     void setModoDebug(ModoDebug modo);
     ModoDebug getModoDebug() const;
 
-    // Dibuja cada parte eligiendo la malla según el TipoMalla del BodyPart.
+    // Dibuja con color sólido (modo original, sin textura)
     void dibujar(Renderer& renderer,
                  const Mesh& meshCubo,
                  const Mesh& meshCilindro,
                  const Mesh& meshEsfera,
                  const Camera& camara) const;
+
+    // Dibuja con textura de madera mezclada con el color de riesgo.
+    // Las partes con ZonaRiesgo asignada muestran tinte; las demás muestran solo madera.
+    void dibujarConTextura(Renderer& renderer,
+                           const Mesh& meshCuboUV,
+                           const Mesh& meshCilindroUV,
+                           const Mesh& meshEsferaUV,
+                           const Camera& camara,
+                           const Textura& textura) const;
 
 private:
     std::vector<BodyPart> mPartes;

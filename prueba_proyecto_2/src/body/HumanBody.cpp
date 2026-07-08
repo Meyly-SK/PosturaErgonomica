@@ -586,6 +586,41 @@ bool HumanBody::debeDibujarse(const BodyPart& parte) const
 }
 
 // ---------------------------------------------------------------------------
+// dibujarConTextura
+//
+// Lógica de mezcla:
+//   - Partes con ZonaRiesgo::Ninguna (pecho, cadera, etc.) → mezcla 0.0 (solo madera)
+//   - Partes con zona asignada → mezcla 0.55 (textura tintada con color de riesgo)
+// Esto hace que las zonas seguras se vean como madera pura y las de riesgo
+// muestren el tinte verde/amarillo/rojo sobre la textura.
+// ---------------------------------------------------------------------------
+void HumanBody::dibujarConTextura(Renderer& renderer,
+                                  const Mesh& meshCuboUV,
+                                  const Mesh& meshCilindroUV,
+                                  const Mesh& meshEsferaUV,
+                                  const Camera& camara,
+                                  const Textura& textura) const
+{
+    for (const BodyPart& p : mPartes)
+    {
+        if (!debeDibujarse(p)) continue;
+
+        const Mesh* mesh = &meshCuboUV;
+        switch (p.tipoMalla)
+        {
+        case BodyPart::TipoMalla::Cilindro: mesh = &meshCilindroUV; break;
+        case BodyPart::TipoMalla::Esfera:   mesh = &meshEsferaUV;   break;
+        default:                             mesh = &meshCuboUV;     break;
+        }
+
+        // Calcular mezcla: zona sin riesgo = solo textura, con riesgo = tintada
+        const float mezcla = (p.zona == ZonaRiesgo::Ninguna) ? 0.05f : 0.55f;
+
+        renderer.dibujarConTextura(*mesh, p.matrizMundo, p.color, camara, textura, mezcla);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // dibujar
 // ---------------------------------------------------------------------------
 void HumanBody::dibujar(Renderer& renderer,

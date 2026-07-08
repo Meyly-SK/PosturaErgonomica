@@ -89,3 +89,15 @@ void Shader::setVec3(const char* nombre, float x, float y, float z) const
     const GLint loc = glGetUniformLocation(mPrograma, nombre);
     glUniform3f(loc, x, y, z);
 }
+
+void Shader::setFloat(const char* nombre, float valor) const
+{
+    const GLint loc = glGetUniformLocation(mPrograma, nombre);
+    glUniform1f(loc, valor);
+}
+
+void Shader::setInt(const char* nombre, int valor) const
+{
+    const GLint loc = glGetUniformLocation(mPrograma, nombre);
+    glUniform1i(loc, valor);
+}

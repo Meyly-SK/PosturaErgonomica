@@ -113,6 +113,158 @@ Mesh PrimitiveFactory::crearCilindro(float radio, float alto, int segmentos)
 }
 
 // Esfera por "stacks/slices" (anillos/sectores), solo posiciones.
+// ==========================================================================
+// Versiones con UV
+// ==========================================================================
+
+// Cubo con UV: cada cara tiene UVs 0-1 mapeadas por triángulo
+Mesh PrimitiveFactory::crearCuboUV()
+{
+    // 6 caras * 2 triángulos * 3 vértices = 36 vértices, 5 floats cada uno (x,y,z,u,v)
+    static const float v[] = {
+        // Frontal (z=+0.5)
+        -0.5f,-0.5f, 0.5f,  0.0f,0.0f,
+         0.5f,-0.5f, 0.5f,  1.0f,0.0f,
+         0.5f, 0.5f, 0.5f,  1.0f,1.0f,
+        -0.5f,-0.5f, 0.5f,  0.0f,0.0f,
+         0.5f, 0.5f, 0.5f,  1.0f,1.0f,
+        -0.5f, 0.5f, 0.5f,  0.0f,1.0f,
+        // Trasera
+        -0.5f,-0.5f,-0.5f,  1.0f,0.0f,
+         0.5f, 0.5f,-0.5f,  0.0f,1.0f,
+         0.5f,-0.5f,-0.5f,  0.0f,0.0f,
+        -0.5f,-0.5f,-0.5f,  1.0f,0.0f,
+        -0.5f, 0.5f,-0.5f,  1.0f,1.0f,
+         0.5f, 0.5f,-0.5f,  0.0f,1.0f,
+        // Izquierda
+        -0.5f,-0.5f,-0.5f,  0.0f,0.0f,
+        -0.5f,-0.5f, 0.5f,  1.0f,0.0f,
+        -0.5f, 0.5f, 0.5f,  1.0f,1.0f,
+        -0.5f,-0.5f,-0.5f,  0.0f,0.0f,
+        -0.5f, 0.5f, 0.5f,  1.0f,1.0f,
+        -0.5f, 0.5f,-0.5f,  0.0f,1.0f,
+        // Derecha
+         0.5f,-0.5f,-0.5f,  1.0f,0.0f,
+         0.5f, 0.5f, 0.5f,  0.0f,1.0f,
+         0.5f,-0.5f, 0.5f,  0.0f,0.0f,
+         0.5f,-0.5f,-0.5f,  1.0f,0.0f,
+         0.5f, 0.5f,-0.5f,  1.0f,1.0f,
+         0.5f, 0.5f, 0.5f,  0.0f,1.0f,
+        // Superior
+        -0.5f, 0.5f,-0.5f,  0.0f,1.0f,
+        -0.5f, 0.5f, 0.5f,  0.0f,0.0f,
+         0.5f, 0.5f, 0.5f,  1.0f,0.0f,
+        -0.5f, 0.5f,-0.5f,  0.0f,1.0f,
+         0.5f, 0.5f, 0.5f,  1.0f,0.0f,
+         0.5f, 0.5f,-0.5f,  1.0f,1.0f,
+        // Inferior
+        -0.5f,-0.5f,-0.5f,  0.0f,0.0f,
+         0.5f,-0.5f, 0.5f,  1.0f,1.0f,
+        -0.5f,-0.5f, 0.5f,  0.0f,1.0f,
+        -0.5f,-0.5f,-0.5f,  0.0f,0.0f,
+         0.5f,-0.5f,-0.5f,  1.0f,0.0f,
+         0.5f,-0.5f, 0.5f,  1.0f,1.0f,
+    };
+    Mesh m;
+    m.crearConUV(v, static_cast<int>(sizeof(v) / sizeof(float)));
+    return m;
+}
+
+// Cilindro con UV: mapeado cilíndrico (u=angulo/2pi, v=altura)
+Mesh PrimitiveFactory::crearCilindroUV(float radio, float alto, int segmentos)
+{
+    if (segmentos < 3) segmentos = 3;
+    if (radio <= 0.0f) radio = 0.1f;
+    if (alto <= 0.0f) alto = 0.1f;
+
+    const float yA = alto * 0.5f;
+    const float yB = -alto * 0.5f;
+    const float paso = 2.0f * 3.14159265f / static_cast<float>(segmentos);
+
+    std::vector<float> v;
+    v.reserve(segmentos * 6 * 5);
+
+    for (int i = 0; i < segmentos; i++)
+    {
+        const float a0 = paso * static_cast<float>(i);
+        const float a1 = paso * static_cast<float>(i + 1);
+
+        const float x0 = std::cos(a0) * radio;
+        const float z0 = std::sin(a0) * radio;
+        const float x1 = std::cos(a1) * radio;
+        const float z1 = std::sin(a1) * radio;
+
+        const float u0 = static_cast<float>(i)     / static_cast<float>(segmentos);
+        const float u1 = static_cast<float>(i + 1) / static_cast<float>(segmentos);
+
+        // Tri 1
+        v.push_back(x0); v.push_back(yB); v.push_back(z0); v.push_back(u0); v.push_back(0.0f);
+        v.push_back(x0); v.push_back(yA); v.push_back(z0); v.push_back(u0); v.push_back(1.0f);
+        v.push_back(x1); v.push_back(yA); v.push_back(z1); v.push_back(u1); v.push_back(1.0f);
+        // Tri 2
+        v.push_back(x0); v.push_back(yB); v.push_back(z0); v.push_back(u0); v.push_back(0.0f);
+        v.push_back(x1); v.push_back(yA); v.push_back(z1); v.push_back(u1); v.push_back(1.0f);
+        v.push_back(x1); v.push_back(yB); v.push_back(z1); v.push_back(u1); v.push_back(0.0f);
+    }
+
+    Mesh m;
+    m.crearConUV(v.data(), static_cast<int>(v.size()));
+    return m;
+}
+
+// Esfera con UV: mapeado esférico estándar
+Mesh PrimitiveFactory::crearEsferaUV(float radio, int sectores, int anillos)
+{
+    if (radio <= 0.0f) radio = 0.1f;
+    if (sectores < 3) sectores = 3;
+    if (anillos < 2)  anillos = 2;
+
+    std::vector<float> v;
+    v.reserve(sectores * anillos * 6 * 5);
+
+    const float PI = 3.14159265f;
+
+    for (int r = 0; r < anillos; r++)
+    {
+        const float v0 = static_cast<float>(r)     / static_cast<float>(anillos);
+        const float v1 = static_cast<float>(r + 1) / static_cast<float>(anillos);
+
+        const float phi0 = (v0 * PI) - (PI * 0.5f);
+        const float phi1 = (v1 * PI) - (PI * 0.5f);
+
+        const float y0  = std::sin(phi0) * radio;
+        const float y1  = std::sin(phi1) * radio;
+        const float rr0 = std::cos(phi0) * radio;
+        const float rr1 = std::cos(phi1) * radio;
+
+        for (int s = 0; s < sectores; s++)
+        {
+            const float u0_ = static_cast<float>(s)     / static_cast<float>(sectores);
+            const float u1_ = static_cast<float>(s + 1) / static_cast<float>(sectores);
+
+            const float theta0 = u0_ * 2.0f * PI;
+            const float theta1 = u1_ * 2.0f * PI;
+
+            const float x00 = std::cos(theta0) * rr0, z00 = std::sin(theta0) * rr0;
+            const float x01 = std::cos(theta1) * rr0, z01 = std::sin(theta1) * rr0;
+            const float x10 = std::cos(theta0) * rr1, z10 = std::sin(theta0) * rr1;
+            const float x11 = std::cos(theta1) * rr1, z11 = std::sin(theta1) * rr1;
+
+            v.push_back(x00); v.push_back(y0); v.push_back(z00); v.push_back(u0_); v.push_back(v0);
+            v.push_back(x10); v.push_back(y1); v.push_back(z10); v.push_back(u0_); v.push_back(v1);
+            v.push_back(x11); v.push_back(y1); v.push_back(z11); v.push_back(u1_); v.push_back(v1);
+
+            v.push_back(x00); v.push_back(y0); v.push_back(z00); v.push_back(u0_); v.push_back(v0);
+            v.push_back(x11); v.push_back(y1); v.push_back(z11); v.push_back(u1_); v.push_back(v1);
+            v.push_back(x01); v.push_back(y0); v.push_back(z01); v.push_back(u1_); v.push_back(v0);
+        }
+    }
+
+    Mesh m;
+    m.crearConUV(v.data(), static_cast<int>(v.size()));
+    return m;
+}
+
 Mesh PrimitiveFactory::crearEsfera(float radio, int sectores, int anillos)
 {
     if (radio <= 0.0f) radio = 0.1f;

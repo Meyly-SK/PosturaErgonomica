@@ -13,21 +13,33 @@
 #include "../graphics/Camera.h"
 #include "../graphics/PrimitiveFactory.h"
 #include "../graphics/Renderer.h"
+#include "../graphics/Textura.h"
 
 #include "../body/HumanBody.h"
 #include "../simulation/ScenarioManager.h"
 #include "../simulation/RiskAnalyzer.h"
 #include "../ui/UI.h"
 
-// Ventana global al módulo (simple por ahora)
+// Ventana global al módulo
 static GLFWwindow* gVentana = nullptr;
 
 static bool gDemoInicializada = false;
 static Renderer gRenderer;
 static Camera gCamara;
+
+// Meshes sin UV (color sólido, modo fallback)
 static Mesh gCubo;
 static Mesh gCilindro;
 static Mesh gEsfera;
+
+// Meshes con UV (para textura de madera)
+static Mesh gCuboUV;
+static Mesh gCilindroUV;
+static Mesh gEsferaUV;
+
+// Textura de madera
+static Textura gTexturaMadera;
+
 static HumanBody gCuerpo;
 static ScenarioManager gEscenarios;
 static RiskAnalyzer gAnalizador;
@@ -102,14 +114,28 @@ bool App::inicializar()
             return false;
         }
 
+        // Meshes sin UV (fallback)
         gCubo     = PrimitiveFactory::crearCubo();
         gCilindro = PrimitiveFactory::crearCilindro(0.5f, 1.0f, 20);
         gEsfera   = PrimitiveFactory::crearEsfera(0.5f, 20, 12);
 
+        // Meshes con UV (textura de madera)
+        gCuboUV     = PrimitiveFactory::crearCuboUV();
+        gCilindroUV = PrimitiveFactory::crearCilindroUV(0.5f, 1.0f, 20);
+        gEsferaUV   = PrimitiveFactory::crearEsferaUV(0.5f, 20, 12);
+
+        // Cargar textura de madera (ruta relativa al directorio de trabajo del exe)
+        // El exe se genera en x64/Debug/, así que la ruta es relativa a ahí.
+        // También intentamos desde el directorio del proyecto por si se ejecuta desde VS.
+        if (!gTexturaMadera.cargarDesdeArchivo("assets/textures/textura_madera.jpg"))
+        {
+            // Intentar ruta alternativa (desde directorio de la solución)
+            gTexturaMadera.cargarDesdeArchivo("prueba_proyecto_2/assets/textures/textura_madera.jpg");
+        }
+
         // Inicializar cuerpo + escenarios
         gCuerpo.inicializar();
         gEscenarios.inicializarEscenariosDefault();
-        // Aplicar postura inicial (postura neutra)
         gCuerpo.setScenario(gEscenarios.getActual());
 
         // Inicializar panel UI (ImGui)
@@ -131,9 +157,7 @@ void App::procesarEntrada(float deltaTiempo)
 {
     Input::procesar(gVentana, deltaTiempo);
 
-    // ------------------------------------------------------------------
     // Debug: teclas 1-7 para ver partes por separado
-    // ------------------------------------------------------------------
     static bool tecla1Antes = false, tecla2Antes = false, tecla3Antes = false;
     static bool tecla4Antes = false, tecla5Antes = false;
     static bool tecla6Antes = false, tecla7Antes = false;
@@ -158,9 +182,7 @@ void App::procesarEntrada(float deltaTiempo)
     tecla4Antes = t4; tecla5Antes = t5;
     tecla6Antes = t6; tecla7Antes = t7;
 
-    // ------------------------------------------------------------------
     // Cambio de escenario: N = siguiente, P = anterior
-    // ------------------------------------------------------------------
     static bool tNAntes = false;
     static bool tPAntes = false;
     const bool tN = glfwGetKey(gVentana, GLFW_KEY_N) == GLFW_PRESS;
@@ -190,7 +212,7 @@ void App::procesarEntrada(float deltaTiempo)
 
 void App::actualizar(float /*deltaTiempo*/)
 {
-    // H4: calcular riesgo del escenario activo y colorear el cuerpo
+    // H4: calcular riesgo y colorear el cuerpo
     const RiskData riesgo = gAnalizador.analizar(gEscenarios.getActual());
     gCuerpo.applyRisk(riesgo);
 
@@ -205,7 +227,17 @@ void App::renderizar()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     gCuerpo.actualizarJerarquia();
-    gCuerpo.dibujar(gRenderer, gCubo, gCilindro, gEsfera, gCamara);
+
+    // Usar textura de madera si está lista, de lo contrario color sólido
+    if (gTexturaMadera.estaLista())
+    {
+        gCuerpo.dibujarConTextura(gRenderer, gCuboUV, gCilindroUV, gEsferaUV,
+                                  gCamara, gTexturaMadera);
+    }
+    else
+    {
+        gCuerpo.dibujar(gRenderer, gCubo, gCilindro, gEsfera, gCamara);
+    }
 
     // H5: renderizar panel UI encima de la escena 3D
     UI::renderizar();
@@ -222,6 +254,7 @@ void App::dibujarDemoCubo()
 void App::cerrar()
 {
     UI::liberar();
+    gTexturaMadera.liberar();
 
     if (gVentana)
     {

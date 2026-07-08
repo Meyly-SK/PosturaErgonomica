@@ -18,9 +18,11 @@ public:
     // Activa el programa.
     void usar() const;
 
-    // Setters simples de uniforms (por ahora: mat4 y vec3).
-    void setMat4(const char* nombre, const float* ptrMat4) const;
-    void setVec3(const char* nombre, float x, float y, float z) const;
+    // Setters de uniforms
+    void setMat4 (const char* nombre, const float* ptrMat4) const;
+    void setVec3 (const char* nombre, float x, float y, float z) const;
+    void setFloat(const char* nombre, float valor) const;
+    void setInt  (const char* nombre, int valor) const;
 
     GLuint idPrograma() const { return mPrograma; }
 

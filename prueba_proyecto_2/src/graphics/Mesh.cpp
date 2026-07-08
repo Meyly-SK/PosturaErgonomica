@@ -83,6 +83,43 @@ bool Mesh::crearSoloPosiciones(const float* datos, int cantidadFloats)
     return true;
 }
 
+bool Mesh::crearConUV(const float* datos, int cantidadFloats)
+{
+    // Cada vértice: x,y,z, u,v → 5 floats
+    if (!datos || cantidadFloats <= 0 || (cantidadFloats % 5) != 0)
+    {
+        std::cout << "Mesh: datos UV inválidos (deben ser múltiplo de 5).\n";
+        return false;
+    }
+
+    if (mVbo != 0) glDeleteBuffers(1, &mVbo);
+    if (mVao != 0) glDeleteVertexArrays(1, &mVao);
+    mVbo = 0; mVao = 0;
+
+    mCantidadVertices = cantidadFloats / 5;
+    mTieneUV = true;
+
+    glGenVertexArrays(1, &mVao);
+    glGenBuffers(1, &mVbo);
+
+    glBindVertexArray(mVao);
+    glBindBuffer(GL_ARRAY_BUFFER, mVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * cantidadFloats, datos, GL_STATIC_DRAW);
+
+    // layout(location = 0) → vec3 posición (stride=5*sizeof(float), offset=0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // layout(location = 1) → vec2 UV (stride=5*sizeof(float), offset=3*sizeof(float))
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    return true;
+}
+
 void Mesh::dibujar() const
 {
     glBindVertexArray(mVao);

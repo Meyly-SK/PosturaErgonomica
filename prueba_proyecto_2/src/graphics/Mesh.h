@@ -2,8 +2,10 @@
 
 #include <GL/glew.h>
 
-// Mesh mínimo: solo posiciones 3D.
-// Encapsula VAO/VBO para no repetir OpenGL en todo el proyecto.
+// Mesh: encapsula VAO/VBO para geometría 3D.
+// Soporta dos modos:
+//   1. Solo posiciones (layout 0 = vec3 pos)
+//   2. Posiciones + UV (layout 0 = vec3 pos, layout 1 = vec2 uv)
 class Mesh
 {
 public:
@@ -17,14 +19,20 @@ public:
     Mesh(Mesh&& other) noexcept;
     Mesh& operator=(Mesh&& other) noexcept;
 
-    // Crea un mesh usando un arreglo de floats (x,y,z) y cantidad de vértices.
+    // Modo 1: solo posiciones (x,y,z) por vértice — interleaved stride=3.
     bool crearSoloPosiciones(const float* datos, int cantidadFloats);
+
+    // Modo 2: posiciones + coordenadas UV (x,y,z, u,v) por vértice — interleaved stride=5.
+    bool crearConUV(const float* datos, int cantidadFloats);
 
     // Dibuja el mesh con glDrawArrays (triángulos).
     void dibujar() const;
 
+    bool tieneUV() const { return mTieneUV; }
+
 private:
     GLuint mVao = 0;
     GLuint mVbo = 0;
-    int mCantidadVertices = 0;
+    int    mCantidadVertices = 0;
+    bool   mTieneUV = false;
 };
