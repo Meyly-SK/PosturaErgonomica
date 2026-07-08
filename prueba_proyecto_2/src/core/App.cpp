@@ -16,6 +16,7 @@
 
 #include "../body/HumanBody.h"
 #include "../simulation/ScenarioManager.h"
+#include "../simulation/RiskAnalyzer.h"
 
 // Ventana global al módulo (simple por ahora)
 static GLFWwindow* gVentana = nullptr;
@@ -28,6 +29,7 @@ static Mesh gCilindro;
 static Mesh gEsfera;
 static HumanBody gCuerpo;
 static ScenarioManager gEscenarios;
+static RiskAnalyzer gAnalizador;
 
 int App::ejecutar()
 {
@@ -184,7 +186,9 @@ void App::procesarEntrada(float deltaTiempo)
 
 void App::actualizar(float /*deltaTiempo*/)
 {
-    // Aqui se integrara RiskAnalyzer en el Hito 4.
+    // H4: calcular riesgo del escenario activo y colorear el cuerpo
+    const RiskData riesgo = gAnalizador.analizar(gEscenarios.getActual());
+    gCuerpo.applyRisk(riesgo);
 }
 
 void App::renderizar()
