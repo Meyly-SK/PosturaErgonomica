@@ -14,246 +14,236 @@ int HumanBody::agregarParte(const BodyPart& parte)
 
 // ---------------------------------------------------------------------------
 // inicializar
-// Construye el pseudo-cuerpo con COORDENADAS ABSOLUTAS (indicePadre = -1)
-// para que las posiciones sean completamente predecibles sin pivotes complejos.
 //
-// Sistema de unidades: 1 unidad ≈ "módulo de cabeza"
-// Altura total del cuerpo: ~7.5 unidades (convención artística clásica)
-//   Y = 0   → suelo (planta del pie)
-//   Y = 7.5 → tope de la cabeza
-// Pivote del cuerpo: caderas ≈ Y 3.0
+// Arquitectura de jerarquía real con pivotes neutros (Opción B):
 //
-// Para posturas futuras: bastará con mover posicion + rotacion de cada parte.
+//   Partes del torso y cabeza: absolutas (indicePadre = -1), sin cambio.
+//
+//   Brazos y piernas: jerarquía real con PIVOTES DE ESCALA NEUTRA {1,1,1}:
+//     PivoteHombro (escala {1,1,1}, posicion absoluta del hombro)
+//       └─ BrazoSup (indicePadre = iPivoteHombro, offsetVisual = {0,-0.55,0})
+//            └─ PivoteCodo (escala {1,1,1}, pos relativa = extremo inferior del brazo)
+//                 └─ Antebrazo (offsetVisual = {0,-0.50,0})
+//                      └─ PivoteMuñeca
+//                           └─ Mano
+//
+//   El nodo pivote tiene escala {1,1,1} → los hijos NO heredan escala distorsionada.
+//   La malla visual usa offsetVisual para posicionarse correctamente.
+//
+//   Ventaja: setScenario() solo cambia rotacionEulerGrados del PIVOTE.
+//            Los hijos siguen automáticamente por actualizarJerarquia().
 // ---------------------------------------------------------------------------
 void HumanBody::inicializar()
 {
     mPartes.clear();
 
-    // -----------------------------------------------------------------------
-    // CABEZA  (esfera, radio ~0.6 unidades)
-    // Centro de la cabeza en Y = 6.9
-    // -----------------------------------------------------------------------
+    // ---- Helper: crea parte visible con offset visual ----
+    // offsetV = desplazamiento de la malla desde el pivote (en espacio local rotado)
+    // Para cilindro centrado: offsetV.y = -escala.y/2 hace que cuelgue desde el pivote.
+
+    // ---- CABEZA ----
+    { BodyPart p; p.nombre="Cabeza"; p.tipoMalla=BodyPart::TipoMalla::Esfera;
+      p.indicePadre=-1; p.escala={1.20f,1.20f,0.90f}; p.posicion={0.0f,6.30f,0.0f};
+      p.color={0.92f,0.85f,0.80f}; agregarParte(p); }
+
+    // ---- CUELLO ----
+    { BodyPart p; p.nombre="Cuello"; p.tipoMalla=BodyPart::TipoMalla::Cilindro;
+      p.zona=ZonaRiesgo::Cuello; p.indicePadre=-1;
+      p.escala={0.38f,0.40f,0.38f}; p.posicion={0.0f,5.70f,0.0f};
+      p.color={0.90f,0.82f,0.75f}; agregarParte(p); }
+
+    // ---- PECHO ----
+    { BodyPart p; p.nombre="Pecho"; p.tipoMalla=BodyPart::TipoMalla::Cilindro;
+      p.indicePadre=-1; p.escala={1.20f,1.50f,0.70f}; p.posicion={0.0f,4.75f,0.0f};
+      p.color={0.55f,0.70f,0.95f}; agregarParte(p); }
+
+    // ---- ZONA LUMBAR ----
+    { BodyPart p; p.nombre="ZonaLumbar"; p.tipoMalla=BodyPart::TipoMalla::Cilindro;
+      p.zona=ZonaRiesgo::Lumbar; p.indicePadre=-1;
+      p.escala={1.10f,1.20f,0.65f}; p.posicion={0.0f,3.40f,0.0f};
+      p.color={0.80f,0.70f,0.60f}; agregarParte(p); }
+
+    // ---- CADERA ----
+    { BodyPart p; p.nombre="Cadera"; p.tipoMalla=BodyPart::TipoMalla::Cilindro;
+      p.indicePadre=-1; p.escala={1.05f,0.40f,0.60f}; p.posicion={0.0f,2.60f,0.0f};
+      p.color={0.70f,0.65f,0.85f}; agregarParte(p); }
+
+    // ====================================================================
+    // BRAZOS con jerarquía real + pivotes de escala neutra
+    //
+    // Estructura:
+    //   PivHombro (escala {1,1,1}) ← nodo de rotación, NO hereda escala
+    //     └─ BrazoSup  (offsetVisual {0,-0.55,0} ← cuelga desde hombro)
+    //          └─ PivCodo (escala {1,1,1}, pos relativa {0,-1.10,0})
+    //               └─ Antebrazo (offsetVisual {0,-0.50,0})
+    //                    └─ PivMuñeca (escala {1,1,1}, pos {0,-1.00,0})
+    //                         └─ Mano (offsetVisual {0,-0.14,0})
+    // ====================================================================
+    auto crearBrazo = [&](float xSign)
     {
-        BodyPart p;
-        p.nombre = "Cabeza";
-        p.tipoMalla = BodyPart::TipoMalla::Esfera;
-        p.indicePadre = -1;
-        // Esfera crearEsfera(0.5, ...) → radio = 0.5 * escala.x
-        p.escala    = {1.20f, 1.20f, 0.90f};   // diámetro ~1.2 unidades
-        p.posicion  = {0.0f, 6.30f, 0.0f};     // centro de la esfera
-        p.color     = {0.92f, 0.85f, 0.80f};   // piel
-        agregarParte(p);
-    }
+        const std::string lado = (xSign < 0) ? "Izq" : "Der";
+        const float xH = xSign * 0.82f; // X del hombro
 
-    // -----------------------------------------------------------------------
-    // CUELLO  (cilindro)
-    // El cilindro crearCilindro(0.5, 1.0, 20) va de Y=-0.5 a Y=+0.5,
-    // luego escalamos: alto real = 1.0 * escala.y, y lo posicionamos en su CENTRO.
-    // Cuello: de Y=5.50 a Y=5.90  → centro Y=5.70, alto=0.40
-    // -----------------------------------------------------------------------
+        // Pivote hombro: escala {1,1,1} → hijos NO heredan distorsión
+        // No se dibuja porque debeDibujarse() filtra nombres que empiezan con "Piv"
+        BodyPart pivH;
+        pivH.nombre = "PivHombro" + lado;
+        pivH.tipoMalla = BodyPart::TipoMalla::Esfera;
+        pivH.indicePadre = -1;
+        pivH.escala = {1.0f, 1.0f, 1.0f}; // NEUTRO: hijos heredan escala 1 (sin distorsión)
+        pivH.posicion = {xH, 4.90f, 0.0f}; // exactamente en la articulación del hombro
+        pivH.zona = ZonaRiesgo::Hombros;
+        pivH.color = {0.65f, 0.90f, 0.65f};
+        const int iPivH = agregarParte(pivH);
+
+        // Brazo superior: cuelga desde el pivote del hombro
+        BodyPart bs;
+        bs.nombre = "BrazoSup" + lado;
+        bs.tipoMalla = BodyPart::TipoMalla::Cilindro;
+        bs.zona = ZonaRiesgo::Hombros;
+        bs.indicePadre = iPivH;
+        bs.escala = {0.34f, 1.10f, 0.34f};
+        bs.posicion = {0.0f, 0.0f, 0.0f}; // relativo al pivote
+        bs.offsetVisual = {0.0f, -0.55f, 0.0f}; // la malla cuelga 0.55 hacia abajo
+        bs.rotacionEulerGrados = {0.0f, 0.0f, xSign * -8.0f}; // leve inclinación
+        bs.color = {0.65f, 0.90f, 0.65f};
+        agregarParte(bs);
+
+        // Pivote codo
+        BodyPart pivC;
+        pivC.nombre = "PivCodo" + lado;
+        pivC.tipoMalla = BodyPart::TipoMalla::Esfera;
+        pivC.indicePadre = iPivH;
+        pivC.escala = {1.0f, 1.0f, 1.0f}; // neutro
+        pivC.posicion = {0.0f, -1.10f, 0.0f}; // relativo al hombro = exactamente en el codo
+        pivC.color = {0.60f, 0.85f, 0.60f};
+        const int iPivC = agregarParte(pivC);
+
+        // Antebrazo: cuelga desde el pivote del codo
+        BodyPart ab;
+        ab.nombre = "Antebrazo" + lado;
+        ab.tipoMalla = BodyPart::TipoMalla::Cilindro;
+        ab.indicePadre = iPivC;
+        ab.escala = {0.30f, 1.00f, 0.30f};
+        ab.posicion = {0.0f, 0.0f, 0.0f};
+        ab.offsetVisual = {0.0f, -0.50f, 0.0f};
+        ab.rotacionEulerGrados = {0.0f, 0.0f, xSign * -3.0f};
+        ab.color = {0.60f, 0.85f, 0.60f};
+        agregarParte(ab);
+
+        // Pivote muñeca
+        BodyPart pivM;
+        pivM.nombre = "PivMuneca" + lado;
+        pivM.tipoMalla = BodyPart::TipoMalla::Cubo;
+        pivM.indicePadre = iPivC;
+        pivM.escala = {1.0f, 1.0f, 1.0f}; // neutro
+        pivM.posicion = {0.0f, -1.00f, 0.0f};
+        pivM.color = {0.92f, 0.85f, 0.80f};
+        const int iPivM = agregarParte(pivM);
+
+        // Mano
+        BodyPart mn;
+        mn.nombre = "Mano" + lado;
+        mn.tipoMalla = BodyPart::TipoMalla::Cubo;
+        mn.indicePadre = iPivM;
+        mn.escala = {0.32f, 0.28f, 0.22f};
+        mn.posicion = {0.0f, 0.0f, 0.0f};
+        mn.offsetVisual = {0.0f, -0.14f, 0.0f};
+        mn.color = {0.92f, 0.85f, 0.80f};
+        agregarParte(mn);
+    };
+
+    crearBrazo(-1.0f); // izquierdo
+    crearBrazo( 1.0f); // derecho
+
+    // ====================================================================
+    // PIERNAS con jerarquía real
+    //   PivCadera → Muslo → PivRodilla → Pierna → PivTobillo → Pie
+    // ====================================================================
+    auto crearPierna = [&](float xSign)
     {
-        BodyPart p;
-        p.nombre = "Cuello";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.zona = ZonaRiesgo::Cuello;
-        p.indicePadre = -1;
-        p.escala   = {0.38f, 0.40f, 0.38f};    // radio ~0.19, alto ~0.40
-        p.posicion = {0.0f, 5.70f, 0.0f};
-        p.color    = {0.90f, 0.82f, 0.75f};
-        agregarParte(p);
-    }
+        const std::string lado = (xSign < 0) ? "Izq" : "Der";
+        const float xC = xSign * 0.30f;
 
-    // -----------------------------------------------------------------------
-    // TORSO SUPERIOR / PECHO
-    // de Y=4.00 a Y=5.50 → centro Y=4.75, alto=1.50
-    // ancho ≈ 1.20 (radio ~0.60)
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "Pecho";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.indicePadre = -1;
-        p.escala   = {1.20f, 1.50f, 0.70f};
-        p.posicion = {0.0f, 4.75f, 0.0f};
-        p.color    = {0.55f, 0.70f, 0.95f};
-        agregarParte(p);
-    }
+        // Pivote cadera: separación aumentada a ±0.38 para postura más natural
+        BodyPart pivCad;
+        pivCad.nombre = "PivCadera" + lado;
+        pivCad.tipoMalla = BodyPart::TipoMalla::Cilindro;
+        pivCad.zona = ZonaRiesgo::Rodillas;
+        pivCad.indicePadre = -1;
+        pivCad.escala = {1.0f, 1.0f, 1.0f}; // neutro
+        const float xCad = xSign * 0.38f; // separación aumentada (antes 0.30)
+        pivCad.posicion = {xCad, 2.50f, 0.0f};
+        pivCad.color = {0.90f, 0.70f, 0.70f};
+        const int iPivCad = agregarParte(pivCad);
 
-    // -----------------------------------------------------------------------
-    // TORSO INFERIOR / ZONA LUMBAR
-    // de Y=2.80 a Y=4.00 → centro Y=3.40, alto=1.20
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "ZonaLumbar";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.zona = ZonaRiesgo::Lumbar;
-        p.indicePadre = -1;
-        p.escala   = {1.10f, 1.20f, 0.65f};
-        p.posicion = {0.0f, 3.40f, 0.0f};
-        p.color    = {0.80f, 0.70f, 0.60f};
-        agregarParte(p);
-    }
+        // Muslo
+        BodyPart ms;
+        ms.nombre = "Muslo" + lado;
+        ms.tipoMalla = BodyPart::TipoMalla::Cilindro;
+        ms.zona = ZonaRiesgo::Rodillas;
+        ms.indicePadre = iPivCad;
+        ms.escala = {0.40f, 1.10f, 0.40f};
+        ms.posicion = {0.0f, 0.0f, 0.0f};
+        ms.offsetVisual = {0.0f, -0.55f, 0.0f};
+        ms.color = {0.90f, 0.70f, 0.70f};
+        agregarParte(ms);
 
-    // -----------------------------------------------------------------------
-    // CADERA (bloque ancho y corto que conecta torso con piernas)
-    // de Y=2.40 a Y=2.80 → centro Y=2.60, alto=0.40
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "Cadera";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.indicePadre = -1;
-        p.escala   = {1.05f, 0.40f, 0.60f};
-        p.posicion = {0.0f, 2.60f, 0.0f};
-        p.color    = {0.70f, 0.65f, 0.85f};
-        agregarParte(p);
-    }
+        // Pivote rodilla
+        BodyPart pivRod;
+        pivRod.nombre = "PivRodilla" + lado;
+        pivRod.tipoMalla = BodyPart::TipoMalla::Cilindro;
+        pivRod.zona = ZonaRiesgo::Rodillas;
+        pivRod.indicePadre = iPivCad;
+        pivRod.escala = {1.0f, 1.0f, 1.0f}; // neutro
+        pivRod.posicion = {0.0f, -1.10f, 0.0f};
+        pivRod.color = {0.88f, 0.65f, 0.65f};
+        const int iPivRod = agregarParte(pivRod);
 
-    // -----------------------------------------------------------------------
-    // BRAZOS SUPERIORES (UpperArm) - izquierdo y derecho
-    // de Y=3.80 a Y=4.90 → centro Y=4.35, alto=1.10
-    // X = ±0.90 (al lado del pecho)
-    // Pequeña inclinación hacia afuera: rotZ = ±8°
-    // -----------------------------------------------------------------------
-    {
-        // Izquierdo (X negativo)
-        BodyPart p;
-        p.nombre = "BrazoSupIzq";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.zona = ZonaRiesgo::Hombros;
-        p.indicePadre = -1;
-        p.escala   = {0.34f, 1.10f, 0.34f};
-        p.posicion = {-0.82f, 4.35f, 0.0f};
-        p.rotacionEulerGrados = {0.0f, 0.0f, 8.0f};   // inclinación leve hacia afuera
-        p.color    = {0.65f, 0.90f, 0.65f};
-        agregarParte(p);
+        // Pantorrilla
+        BodyPart pr;
+        pr.nombre = "Pierna" + lado;
+        pr.tipoMalla = BodyPart::TipoMalla::Cilindro;
+        pr.zona = ZonaRiesgo::Rodillas;
+        pr.indicePadre = iPivRod;
+        pr.escala = {0.35f, 1.00f, 0.35f};
+        pr.posicion = {0.0f, 0.0f, 0.0f};
+        pr.offsetVisual = {0.0f, -0.50f, 0.0f};
+        pr.color = {0.88f, 0.65f, 0.65f};
+        agregarParte(pr);
 
-        // Derecho (X positivo)
-        BodyPart pd = p;
-        pd.nombre = "BrazoSupDer";
-        pd.posicion.x = 0.82f;
-        pd.rotacionEulerGrados.z = -8.0f;
-        agregarParte(pd);
-    }
+        // Pivote tobillo
+        BodyPart pivTob;
+        pivTob.nombre = "PivTobillo" + lado;
+        pivTob.tipoMalla = BodyPart::TipoMalla::Cubo;
+        pivTob.indicePadre = iPivRod;
+        pivTob.escala = {1.0f, 1.0f, 1.0f}; // neutro
+        pivTob.posicion = {0.0f, -1.00f, 0.0f};
+        pivTob.color = {0.35f, 0.35f, 0.40f};
+        const int iPivTob = agregarParte(pivTob);
 
-    // -----------------------------------------------------------------------
-    // ANTEBRAZO (Forearm) - izquierdo y derecho
-    // de Y=2.80 a Y=3.80 → centro Y=3.30, alto=1.00
-    // X = ±0.90 (misma columna que el brazo)
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "AntebrazoIzq";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.indicePadre = -1;
-        p.escala   = {0.30f, 1.00f, 0.30f};
-        // Y=3.25 en lugar de 3.30: leve overlap con el brazo superior (Y=3.80 tope)
-        // para eliminar el gap visual entre brazo y antebrazo
-        p.posicion = {-0.88f, 3.25f, 0.0f};
-        p.rotacionEulerGrados = {0.0f, 0.0f, 5.0f};
-        p.color    = {0.60f, 0.85f, 0.60f};
-        agregarParte(p);
+        // Pie: ligeramente separado hacia afuera (X) para naturalidad visual
+        BodyPart pi;
+        pi.nombre = "Pie" + lado;
+        pi.tipoMalla = BodyPart::TipoMalla::Cubo;
+        pi.indicePadre = iPivTob;
+        pi.escala = {0.40f, 0.20f, 0.70f};
+        pi.posicion = {0.0f, 0.0f, 0.0f};
+        pi.offsetVisual = {xSign * 0.06f, -0.10f, 0.15f}; // pie separado hacia afuera
+        pi.color = {0.35f, 0.35f, 0.40f};
+        agregarParte(pi);
+    };
 
-        BodyPart pd = p;
-        pd.nombre = "AntebrazoDer";
-        pd.posicion.x = 0.88f;
-        pd.rotacionEulerGrados.z = -5.0f;
-        agregarParte(pd);
-    }
+    crearPierna(-1.0f); // izquierda
+    crearPierna( 1.0f); // derecha
 
-    // -----------------------------------------------------------------------
-    // MANOS  (cubo aplanado)
-    // centro Y=2.40, X=±0.92
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "ManoIzq";
-        p.tipoMalla = BodyPart::TipoMalla::Cubo;
-        p.indicePadre = -1;
-        p.escala   = {0.32f, 0.28f, 0.22f};
-        p.posicion = {-0.94f, 2.40f, 0.0f};
-        p.color    = {0.92f, 0.85f, 0.80f};
-        agregarParte(p);
-
-        BodyPart pd = p;
-        pd.nombre = "ManoDer";
-        pd.posicion.x = 0.94f;
-        agregarParte(pd);
-    }
-
-    // -----------------------------------------------------------------------
-    // MUSLOS (Thigh) - izquierdo y derecho
-    // de Y=1.40 a Y=2.50 → centro Y=1.95, alto=1.10
-    // X = ±0.30 (separados)
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "MusloIzq";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.zona = ZonaRiesgo::Rodillas;
-        p.indicePadre = -1;
-        p.escala   = {0.40f, 1.10f, 0.40f};
-        p.posicion = {-0.30f, 1.95f, 0.0f};
-        p.color    = {0.90f, 0.70f, 0.70f};
-        agregarParte(p);
-
-        BodyPart pd = p;
-        pd.nombre = "MusloDer";
-        pd.posicion.x = 0.30f;
-        agregarParte(pd);
-    }
-
-    // -----------------------------------------------------------------------
-    // PANTORRILLAS (Shin) - izquierdo y derecho
-    // de Y=0.40 a Y=1.40 → centro Y=0.90, alto=1.00
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "PiernaIzq";
-        p.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        p.zona = ZonaRiesgo::Rodillas;
-        p.indicePadre = -1;
-        p.escala   = {0.35f, 1.00f, 0.35f};
-        p.posicion = {-0.28f, 0.90f, 0.0f};
-        p.color    = {0.88f, 0.65f, 0.65f};
-        agregarParte(p);
-
-        BodyPart pd = p;
-        pd.nombre = "PiernaDer";
-        pd.posicion.x = 0.28f;
-        agregarParte(pd);
-    }
-
-    // -----------------------------------------------------------------------
-    // PIES  (cubo aplanado, ligeramente adelantado en Z)
-    // centro Y=0.10, X=±0.28
-    // -----------------------------------------------------------------------
-    {
-        BodyPart p;
-        p.nombre = "PieIzq";
-        p.tipoMalla = BodyPart::TipoMalla::Cubo;
-        p.indicePadre = -1;
-        p.escala   = {0.40f, 0.20f, 0.70f};
-        p.posicion = {-0.28f, 0.10f, 0.15f};   // Z positivo = adelantado
-        p.color    = {0.35f, 0.35f, 0.40f};
-        agregarParte(p);
-
-        BodyPart pd = p;
-        pd.nombre = "PieDer";
-        pd.posicion.x = 0.28f;
-        agregarParte(pd);
-    }
-
-    // Guardar pose base (postura neutra) en cada parte
+    // Guardar pose base
     for (BodyPart& p : mPartes)
     {
-        p.posicionBase    = p.posicion;
-        p.rotacionBase    = p.rotacionEulerGrados;
-        p.colorBase       = p.color;
+        p.posicionBase  = p.posicion;
+        p.rotacionBase  = p.rotacionEulerGrados;
+        p.colorBase     = p.color;
     }
-
-    // Calcular matrices mundo iniciales
     actualizarJerarquia();
 }
 
@@ -333,19 +323,18 @@ void HumanBody::setScenario(const ScenarioData& escenario)
         }
     };
 
-    // ---- TORSO PRIMERO (mueve torso + brazos + cuello como bloque) ----
-    // IMPORTANTE: el torso debe ir antes que los hombros/codos, porque desplaza
-    // los brazos a nuevas posiciones absolutas. Si el torso fuera después, los
-    // pivotes de hombro/codo estarían mal calculados.
+    // ---- TORSO PRIMERO (mueve torso + pivotes de hombro + pivotes de cadera) ----
+    // Con jerarquía real, mover el torso = mover los pivotes de hombro (absolutos).
+    // Los brazos siguen automáticamente por herencia de jerarquía.
     if (escenario.anguloTorso != 0.0f)
     {
         const glm::vec3 pivotTorso = {0.0f, 2.80f, 0.0f};
         const float angT = glm::radians(escenario.anguloTorso);
         const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angT, glm::vec3(1.0f, 0.0f, 0.0f));
+        // Mueve las partes absolutas del torso + los pivotes de hombro
         const std::vector<std::string> partesTorso = {
-            "Pecho", "ZonaLumbar", "Cuello", "Cabeza",
-            "BrazoSupIzq", "AntebrazoIzq", "ManoIzq",
-            "BrazoSupDer", "AntebrazoDer", "ManoDer"
+            "Pecho","ZonaLumbar","Cuello","Cabeza",
+            "PivHombroIzq","PivHombroDer"   // pivotes de hombro se mueven con el torso
         };
         for (BodyPart& p : mPartes)
         {
@@ -353,15 +342,15 @@ void HumanBody::setScenario(const ScenarioData& escenario)
             {
                 if (p.nombre == nombre)
                 {
-                    const glm::vec4 offset = {
+                    const glm::vec4 off = {
                         p.posicion.x - pivotTorso.x,
                         p.posicion.y - pivotTorso.y,
                         p.posicion.z - pivotTorso.z, 0.0f
                     };
-                    const glm::vec4 rotado = rot * offset;
-                    p.posicion.x = pivotTorso.x + rotado.x;
-                    p.posicion.y = pivotTorso.y + rotado.y;
-                    p.posicion.z = pivotTorso.z + rotado.z;
+                    const glm::vec4 r2 = rot * off;
+                    p.posicion.x = pivotTorso.x + r2.x;
+                    p.posicion.y = pivotTorso.y + r2.y;
+                    p.posicion.z = pivotTorso.z + r2.z;
                     p.rotacionEulerGrados.x = p.rotacionBase.x + escenario.anguloTorso;
                     break;
                 }
@@ -369,85 +358,67 @@ void HumanBody::setScenario(const ScenarioData& escenario)
         }
     }
 
-    // Helper lambda: busca posición actual de una parte por nombre
-    auto posActual = [&](const std::string& nombre, const glm::vec3& fallback) -> glm::vec3
+    // ---- Hombro derecho: rota el PIVOTE → brazo/antebrazo/mano siguen automáticamente ----
+    // + = arriba (eje Z), - = abajo
+    // X negado: + = adelante del muñeco
     {
-        for (const BodyPart& p : mPartes)
-            if (p.nombre == nombre) return p.posicion;
-        return fallback;
-    };
+        auto setRot = [&](const std::string& nm, const glm::vec3& r) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm) { p.rotacionEulerGrados = p.rotacionBase + r; break; }
+        };
+        setRot("PivHombroDer", {0.0f,  0.0f,  escenario.anguloBrazoDer});
+        // Eje X sagital: negar para que + = adelante
+        // Se aplica como rotX adicional en el pivote (primero Z, luego X)
+        if (escenario.anguloBrazoDerX != 0.0f)
+        {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == "PivHombroDer")
+                    { p.rotacionEulerGrados.x = p.rotacionBase.x - escenario.anguloBrazoDerX; break; }
+        }
 
-    // ---- Brazo derecho (Z=lateral/arriba, X=sagital) ----
-    // NOTA: en nuestro sistema, eje X positivo = hacia ATRÁS del muñeco.
-    // Por eso negamos anguloBrazoDerX para que + = hacia ADELANTE (donde miran los pies).
-    {
-        const glm::vec3 posBrazoDer = posActual("BrazoSupDer", {0.82f, 4.35f, 0.0f});
-        const glm::vec3 pivotDer    = {posBrazoDer.x, posBrazoDer.y + 0.55f, posBrazoDer.z};
-        const std::vector<std::string> grpDer = {"BrazoSupDer","AntebrazoDer","ManoDer"};
-        rotarGrupoEje(grpDer, pivotDer,  escenario.anguloBrazoDer,   {0,0,1}, true,  escenario.anguloBrazoDer);
-        rotarGrupoEje(grpDer, pivotDer, -escenario.anguloBrazoDerX,  {1,0,0}, false, 0.0f); // negado: + = adelante
+        setRot("PivHombroIzq", {0.0f, 0.0f, -escenario.anguloBrazoIzq});
+        if (escenario.anguloBrazoIzqX != 0.0f)
+        {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == "PivHombroIzq")
+                    { p.rotacionEulerGrados.x = p.rotacionBase.x - escenario.anguloBrazoIzqX; break; }
+        }
     }
 
-    // ---- Brazo izquierdo ----
+    // ---- Codo: rota el PivCodo relativo al hombro ----
     {
-        const glm::vec3 posBrazoIzq = posActual("BrazoSupIzq", {-0.82f, 4.35f, 0.0f});
-        const glm::vec3 pivotIzq    = {posBrazoIzq.x, posBrazoIzq.y + 0.55f, posBrazoIzq.z};
-        const std::vector<std::string> grpIzq = {"BrazoSupIzq","AntebrazoIzq","ManoIzq"};
-        rotarGrupoEje(grpIzq, pivotIzq, -escenario.anguloBrazoIzq,   {0,0,1}, true, -escenario.anguloBrazoIzq);
-        rotarGrupoEje(grpIzq, pivotIzq, -escenario.anguloBrazoIzqX,  {1,0,0}, false, 0.0f); // negado: + = adelante
+        auto setRotCodo = [&](const std::string& nm, float z, float x) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm)
+                    { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y, p.rotacionBase.z + z}; break; }
+        };
+        setRotCodo("PivCodoDer",  escenario.anguloCodoDer,  -escenario.anguloCodoDerX);
+        setRotCodo("PivCodoIzq", -escenario.anguloCodoIzq,  -escenario.anguloCodoIzqX);
     }
 
-    // ---- Codo derecho ----
+    // ---- Cadera: rota PivCadera → muslo/pierna/pie siguen ----
     {
-        const glm::vec3 posBrazoDer  = posActual("BrazoSupDer", {0.82f, 4.35f, 0.0f});
-        const glm::vec3 pivotCodoDer = {posBrazoDer.x, posBrazoDer.y - 0.55f, posBrazoDer.z};
-        const std::vector<std::string> grpCodoDer = {"AntebrazoDer","ManoDer"};
-        rotarGrupoEje(grpCodoDer, pivotCodoDer,  escenario.anguloCodoDer,   {0,0,1}, true, escenario.anguloCodoDer);
-        rotarGrupoEje(grpCodoDer, pivotCodoDer, -escenario.anguloCodoDerX,  {1,0,0}, false, 0.0f); // negado
+        auto setRotCad = [&](const std::string& nm, float z, float x) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm)
+                    { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y, p.rotacionBase.z + z}; break; }
+        };
+        setRotCad("PivCaderaDer", -escenario.anguloMusloDer, -escenario.anguloMusloDerX);
+        setRotCad("PivCaderaIzq",  escenario.anguloMusloIzq, -escenario.anguloMusloIzqX);
     }
 
-    // ---- Codo izquierdo ----
+    // ---- Rodilla: rota PivRodilla → pierna/pie siguen ----
     {
-        const glm::vec3 posBrazoIzq  = posActual("BrazoSupIzq", {-0.82f, 4.35f, 0.0f});
-        const glm::vec3 pivotCodoIzq = {posBrazoIzq.x, posBrazoIzq.y - 0.55f, posBrazoIzq.z};
-        const std::vector<std::string> grpCodoIzq = {"AntebrazoIzq","ManoIzq"};
-        rotarGrupoEje(grpCodoIzq, pivotCodoIzq, -escenario.anguloCodoIzq,   {0,0,1}, true, -escenario.anguloCodoIzq);
-        rotarGrupoEje(grpCodoIzq, pivotCodoIzq, -escenario.anguloCodoIzqX,  {1,0,0}, false, 0.0f); // negado
+        auto setRotRod = [&](const std::string& nm, float z, float x) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm)
+                    { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y, p.rotacionBase.z + z}; break; }
+        };
+        setRotRod("PivRodillaDer", -escenario.anguloRodilla, -escenario.anguloRodillaX);
+        setRotRod("PivRodillaIzq",  escenario.anguloRodilla, -escenario.anguloRodillaX);
     }
 
-    // ---- Muslo derecho (eje Z lateral, eje X sagital) ----
-    // Negamos anguloMusloDerX para que + = pierna hacia ADELANTE (donde miran los pies)
-    {
-        const glm::vec3 pivotCaderaDer = {0.30f, 2.50f, 0.0f};
-        const std::vector<std::string> grpMusloDer = {"MusloDer","PiernaDer","PieDer"};
-        rotarGrupoEje(grpMusloDer, pivotCaderaDer, -escenario.anguloMusloDer,   {0,0,1}, true, -escenario.anguloMusloDer);
-        rotarGrupoEje(grpMusloDer, pivotCaderaDer, -escenario.anguloMusloDerX,  {1,0,0}, false, 0.0f); // negado: + = adelante
-    }
-
-    // ---- Muslo izquierdo ----
-    {
-        const glm::vec3 pivotCaderaIzq = {-0.30f, 2.50f, 0.0f};
-        const std::vector<std::string> grpMusloIzq = {"MusloIzq","PiernaIzq","PieIzq"};
-        rotarGrupoEje(grpMusloIzq, pivotCaderaIzq,  escenario.anguloMusloIzq,   {0,0,1}, true, escenario.anguloMusloIzq);
-        rotarGrupoEje(grpMusloIzq, pivotCaderaIzq, -escenario.anguloMusloIzqX,  {1,0,0}, false, 0.0f); // negado
-    }
-
-    // ---- Rodilla derecha ----
-    {
-        const glm::vec3 pivotRodDer = {0.30f, 1.40f, 0.0f};
-        const std::vector<std::string> grpRodDer = {"PiernaDer","PieDer"};
-        rotarGrupoEje(grpRodDer, pivotRodDer, -escenario.anguloRodilla,   {0,0,1}, false, 0.0f);
-        rotarGrupoEje(grpRodDer, pivotRodDer, -escenario.anguloRodillaX,  {1,0,0}, false, 0.0f); // negado
-    }
-
-    // ---- Rodilla izquierda ----
-    {
-        const glm::vec3 pivotRodIzq = {-0.30f, 1.40f, 0.0f};
-        const std::vector<std::string> grpRodIzq = {"PiernaIzq","PieIzq"};
-        rotarGrupoEje(grpRodIzq, pivotRodIzq,  escenario.anguloRodilla,   {0,0,1}, false, 0.0f);
-        rotarGrupoEje(grpRodIzq, pivotRodIzq, -escenario.anguloRodillaX,  {1,0,0}, false, 0.0f); // negado
-    }
-
+    // Recalcular jerarquía completa
     actualizarJerarquia();
 }
 
@@ -491,6 +462,10 @@ HumanBody::ModoDebug HumanBody::getModoDebug() const
 
 bool HumanBody::debeDibujarse(const BodyPart& parte) const
 {
+    // Los nodos pivote (nombres que empiezan con "Piv") NUNCA se dibujan.
+    // Tienen escala {1,1,1} para no distorsionar hijos, pero no son mallas visibles.
+    if (parte.nombre.substr(0, 3) == "Piv") return false;
+
     if (mModoDebug == ModoDebug::Completo) return true;
 
     const std::string& n = parte.nombre;
@@ -501,7 +476,9 @@ bool HumanBody::debeDibujarse(const BodyPart& parte) const
         return (n == "Cabeza" || n == "Cuello");
 
     case ModoDebug::SoloHombros:
-        return (n == "BrazoSupIzq" || n == "BrazoSupDer");
+        return (n == "BrazoSupIzq" || n == "BrazoSupDer"
+             || n == "AntebrazoIzq" || n == "AntebrazoDer"
+             || n == "ManoIzq" || n == "ManoDer");
 
     case ModoDebug::SoloBrazoIzq:
         return (n == "BrazoSupIzq" || n == "AntebrazoIzq" || n == "ManoIzq");

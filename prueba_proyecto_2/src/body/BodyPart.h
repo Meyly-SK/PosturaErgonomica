@@ -45,6 +45,21 @@ struct BodyPart
     // Matriz calculada por HumanBody::actualizarJerarquia()
     glm::mat4 matrizMundo{1.0f};
 
-    // Construye la matriz local a partir de posición/rotación/escala.
+    // Offset visual: desplazamiento de la malla DENTRO del espacio del nodo,
+    // aplicado DESPUÉS de rotar pero ANTES de escalar.
+    //
+    // PARA QUÉ SIRVE:
+    //   Permite que el nodo de articulación tenga escala {1,1,1} (sin distorsión
+    //   para los hijos) mientras la malla visual se desplaza al lugar correcto.
+    //
+    //   Ejemplo: un cilindro de brazo que "cuelga" desde el hombro:
+    //     offsetVisual = {0, -0.5, 0}  →  la malla baja al hombro,
+    //     el nodo de rotación queda en el pivot exacto.
+    //
+    //   Orden de la matrizLocal:
+    //     translate(posicion) * rotate(euler) * translate(offsetVisual) * scale(escala)
+    glm::vec3 offsetVisual{0.0f};
+
+    // Construye la matriz local a partir de posición/rotación/offsetVisual/escala.
     glm::mat4 matrizLocal() const;
 };
