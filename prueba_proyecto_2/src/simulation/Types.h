@@ -76,6 +76,26 @@ struct ScenarioData
     float anguloRodilla       = 0.0f;   // ambas rodillas eje Z (0=extendida, +90=doblada)
     float anguloRodillaX      = 0.0f;   // ambas rodillas eje X (sagital)
 
+    // ---- Tobillo / Pie ----
+    // Eje Y: rotación axial del pie (dedo apunta a izq/der = pronación/supinación)
+    // Eje X: dorsiflexión (punta arriba +) / flexión plantar (punta abajo -)
+    // Uso: tobilloDer.Y=30 → pie derecho girado 30° (mirando al frente cuando pierna abierta)
+    float anguloPieDerY       = 0.0f;   // rotación axial pie derecho
+    float anguloPieIzqY       = 0.0f;   // rotación axial pie izquierdo
+    float anguloPieDerX       = 0.0f;   // dorsiflexión pie derecho
+    float anguloPieIzqX       = 0.0f;   // dorsiflexión pie izquierdo
+
+    // ---- Muñeca / Mano ----
+    // Eje Y: pronación/supinación (palma arriba/abajo)
+    // Eje X: flexión de muñeca (hacia adelante/atrás)
+    // Eje Z: desviación cubital/radial (lateral)
+    float anguloManoDerY      = 0.0f;   // pronación/supinación mano derecha
+    float anguloManoIzqY      = 0.0f;
+    float anguloManoDerX      = 0.0f;   // flexión de muñeca derecha
+    float anguloManoIzqX      = 0.0f;
+    float anguloManoDerZ      = 0.0f;   // desviación lateral mano derecha
+    float anguloManoIzqZ      = 0.0f;
+
     // ---- Torso lateral (eje Z) ----
     float anguloTorsoLateral  = 0.0f;   // inclinación lateral del torso (+= hacia derecha)
 

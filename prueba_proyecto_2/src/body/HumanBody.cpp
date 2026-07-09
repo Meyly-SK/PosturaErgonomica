@@ -418,6 +418,36 @@ void HumanBody::setScenario(const ScenarioData& escenario)
         setRotRod("PivRodillaIzq",  escenario.anguloRodilla, -escenario.anguloRodillaX);
     }
 
+    // ---- Tobillo / Pie: rotación independiente del pie (sin mover la pantorrilla) ----
+    // PivTobillo ya existe en la jerarquía: PivRodilla → Pierna → PivTobillo → Pie
+    // Rotar PivTobillo gira solo el pie, sin afectar la pantorrilla.
+    // Eje Y = rotación axial (dedo del pie apunta a izq/der)
+    // Eje X = dorsiflexión (punta arriba/abajo)
+    {
+        auto setRotTob = [&](const std::string& nm, float x, float y) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm)
+                    { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y + y, p.rotacionBase.z}; break; }
+        };
+        setRotTob("PivTobilloDer", escenario.anguloPieDerX,  escenario.anguloPieDerY);
+        setRotTob("PivTobilloIzq", escenario.anguloPieIzqX,  escenario.anguloPieIzqY);
+    }
+
+    // ---- Muñeca / Mano: rotación independiente de la mano (sin mover el antebrazo) ----
+    // PivMuneca ya existe: PivCodo → Antebrazo → PivMuneca → Mano
+    // Eje Y = pronación/supinación (palma arriba/abajo)
+    // Eje X = flexión de muñeca
+    // Eje Z = desviación cubital/radial
+    {
+        auto setRotMun = [&](const std::string& nm, float x, float y, float z) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm)
+                    { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y + y, p.rotacionBase.z + z}; break; }
+        };
+        setRotMun("PivMunecaDer", escenario.anguloManoDerX, escenario.anguloManoDerY, escenario.anguloManoDerZ);
+        setRotMun("PivMunecaIzq", escenario.anguloManoIzqX, escenario.anguloManoIzqY, escenario.anguloManoIzqZ);
+    }
+
     // Recalcular jerarquía completa
     actualizarJerarquia();
 }
