@@ -44,6 +44,15 @@ static HumanBody gCuerpo;
 static ScenarioManager gEscenarios;
 static RiskAnalyzer gAnalizador;
 
+// ---------------------------------------------------------------------------
+// Transición suave entre escenarios (H6-A)
+// Al presionar N/P, los ángulos interpolan desde la postura actual a la nueva.
+// ---------------------------------------------------------------------------
+static ScenarioData gEscenarioOrigen;   // postura "desde donde venimos"
+static ScenarioData gEscenarioDestino;  // postura "a donde vamos"
+static float        gProgresoTransicion = 1.0f;  // 1.0 = completada (sin transición activa)
+static const float  gDuracionTransicion = 0.85f; // segundos
+
 int App::ejecutar()
 {
     if (!inicializar())
@@ -188,32 +197,49 @@ void App::procesarEntrada(float deltaTiempo)
     const bool tN = glfwGetKey(gVentana, GLFW_KEY_N) == GLFW_PRESS;
     const bool tP = glfwGetKey(gVentana, GLFW_KEY_P) == GLFW_PRESS;
 
-    if (tN && !tNAntes)
+    // Helper: inicia la transición hacia el escenario actual del manager
+    auto iniciarTransicion = [&]()
     {
-        gEscenarios.siguiente();
-        gCuerpo.setScenario(gEscenarios.getActual());
+        // Capturar postura actual interpolada (para que la transición arranque
+        // desde donde el cuerpo está visualmente, no desde donde estaba antes)
+        const float t = glm::smoothstep(0.0f, 1.0f, gProgresoTransicion);
+        gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
+        gEscenarioDestino = gEscenarios.getActual();
+        gProgresoTransicion = 0.0f;   // reiniciar progreso
         std::cout << "Escenario ["
                   << (gEscenarios.getIndiceActual() + 1) << "/"
                   << gEscenarios.getTotalEscenarios() << "]: "
                   << gEscenarios.getActual().nombre << "\n";
-    }
-    if (tP && !tPAntes)
-    {
-        gEscenarios.anterior();
-        gCuerpo.setScenario(gEscenarios.getActual());
-        std::cout << "Escenario ["
-                  << (gEscenarios.getIndiceActual() + 1) << "/"
-                  << gEscenarios.getTotalEscenarios() << "]: "
-                  << gEscenarios.getActual().nombre << "\n";
-    }
+    };
+
+    if (tN && !tNAntes) { gEscenarios.siguiente(); iniciarTransicion(); }
+    if (tP && !tPAntes) { gEscenarios.anterior();  iniciarTransicion(); }
     tNAntes = tN;
     tPAntes = tP;
 }
 
-void App::actualizar(float /*deltaTiempo*/)
+void App::actualizar(float deltaTiempo)
 {
+    // H6-A: avanzar la transición suave entre escenarios
+    ScenarioData escenarioVisible;
+    if (gProgresoTransicion < 1.0f)
+    {
+        gProgresoTransicion += deltaTiempo / gDuracionTransicion;
+        if (gProgresoTransicion > 1.0f) gProgresoTransicion = 1.0f;
+
+        // glm::smoothstep produce curva S: empieza lento, acelera, termina lento
+        const float t = glm::smoothstep(0.0f, 1.0f, gProgresoTransicion);
+        escenarioVisible = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
+    }
+    else
+    {
+        escenarioVisible = gEscenarios.getActual();
+    }
+
+    gCuerpo.setScenario(escenarioVisible);
+
     // H4: calcular riesgo y colorear el cuerpo
-    const RiskData riesgo = gAnalizador.analizar(gEscenarios.getActual());
+    const RiskData riesgo = gAnalizador.analizar(escenarioVisible);
     gCuerpo.applyRisk(riesgo);
 
     // H5: preparar nuevo frame de UI

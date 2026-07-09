@@ -106,6 +106,46 @@ struct ScenarioData
 };
 
 // --------------------------------------------------------------------------
+// interpolar — interpolación lineal de todos los campos float de ScenarioData
+//
+// Uso en App::actualizar(dt):
+//   float t = glm::smoothstep(0.0f, 1.0f, progreso);
+//   ScenarioData actual = interpolar(origen, destino, t);
+//   cuerpo.setScenario(actual);
+//
+// glm::smoothstep produce una curva S (empieza lento, acelera, termina lento).
+// --------------------------------------------------------------------------
+#include <glm/glm.hpp>
+inline ScenarioData interpolar(const ScenarioData& a, const ScenarioData& b, float t)
+{
+    ScenarioData r;
+    // Metadatos: usar los del destino
+    r.nombre      = b.nombre;
+    r.descripcion = b.descripcion;
+
+    // Todos los campos float se interpolan linealmente con el factor t
+    #define LERP(campo) r.campo = glm::mix(a.campo, b.campo, t)
+    LERP(anguloCuello);        LERP(anguloLateralCuello);
+    LERP(anguloTorso);         LERP(anguloTorsoLateral);
+    LERP(anguloBrazoIzq);      LERP(anguloBrazoDer);
+    LERP(anguloBrazoIzqX);     LERP(anguloBrazoDerX);
+    LERP(anguloCodoIzq);       LERP(anguloCodoDer);
+    LERP(anguloCodoIzqX);      LERP(anguloCodoDerX);
+    LERP(anguloMusloIzq);      LERP(anguloMusloDer);
+    LERP(anguloMusloIzqX);     LERP(anguloMusloDerX);
+    LERP(anguloRodilla);       LERP(anguloRodillaX);
+    LERP(anguloPieDerY);       LERP(anguloPieIzqY);
+    LERP(anguloPieDerX);       LERP(anguloPieIzqX);
+    LERP(anguloManoDerY);      LERP(anguloManoIzqY);
+    LERP(anguloManoDerX);      LERP(anguloManoIzqX);
+    LERP(anguloManoDerZ);      LERP(anguloManoIzqZ);
+    LERP(pesoCarga);           LERP(distanciaCarga);
+    LERP(tiempoExposicion);
+    #undef LERP
+    return r;
+}
+
+// --------------------------------------------------------------------------
 // RiskData — resultado del análisis ergonómico por zona
 // Escala: 0 (sin riesgo) a 100 (riesgo máximo)
 // Verde: <30 | Amarillo: 30-60 | Rojo: >60

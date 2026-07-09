@@ -414,14 +414,48 @@ La primera versión compartida debe:
 
 ---
 
-## 17) Convenciones de repo (recomendado)
+## 17) Mejoras H6 — Demo final y pulido (post-MVP)
+
+Estado actual: **Hitos H1–H5 completados**. El proyecto tiene cuerpo con jerarquía real, texturas, 4 escenarios, panel ImGui, colores de riesgo y ejes X/Y/Z por articulación.
+
+Las siguientes mejoras corresponden al **Hito H6 (Demo final)**:
+
+### H6-A: Transición suave entre escenarios ← PRIORITARIA
+Al presionar N/P, los ángulos interpolan suavemente desde la postura actual hasta la nueva (~1 segundo).
+
+**Implementación:**
+- Variables en `App`: `mEscenarioActual`, `mEscenarioDestino`, `mTiempoTransicion`, `mEnTransicion`
+- Función `interpolar(ScenarioData a, ScenarioData b, float t)` en `Types.h`
+- En `App::update(dt)`: `t += dt / duracion`, aplicar `glm::smoothstep`, llamar `setScenario(interpolado)`
+- `glm::smoothstep(0,1,t)`: transición suave (empieza lento, acelera, termina lento)
+- **No modifica** HumanBody, Renderer ni los archivos de escenario.
+
+### H6-B: Recomendaciones automáticas en UI
+Texto contextual según zona de mayor riesgo:
+- Lumbar > 60: "⚠ Dobla las rodillas, no la espalda"
+- Hombros > 60: "⚠ Mantén los brazos cerca del cuerpo"
+- Cuello > 60: "⚠ Mantén la cabeza alineada con la columna"
+- Rodillas > 60: "⚠ Evita hiperextender las rodillas"
+
+### H6-C: Iluminación básica Phong
+Agregar normal a los vértices y cálculo de luz en el shader.
+- Hace que los cilindros muestren profundidad real (sombra/luz)
+- Posición de luz fija: `{2, 4, 3}`
+
+### H6-D: Sliders ImGui en tiempo real
+- Sliders para `pesoCarga` y `distanciaCarga` que recalculan riesgo en cada frame
+- Permite explorar el impacto ergonómico sin cambiar de escenario
+
+---
+
+## 18) Convenciones de repo (recomendado)
 - `assets/` solo recursos necesarios (no outputs).
 - No subir binarios/outputs de VS (`x64/Debug`, `*.pdb`, etc.)
 - Si usan `vcpkg` con manifest: **no subir `vcpkg_installed/`** (se regenera).
 
 ---
 
-## 18) Trazabilidad (Word → README)
+## 19) Trazabilidad (Word → README)
 
 Esta sección asegura que el contenido del documento **“Guía técnica de organización modular”** quedó reflejado en este README, incluyendo las **optimizaciones** discutidas.
 
