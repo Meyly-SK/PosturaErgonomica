@@ -51,19 +51,33 @@ struct ScenarioData
     float anguloTorso         = 0.0f;   // flexión torso (0=recto, +45=inclinado adelante)
 
     // ---- Brazos (desde hombro) ----
-    float anguloBrazoIzq      = 0.0f;   // elevación brazo izq (0=colgando, +90=horizontal)
+    // Eje Z: elevación lateral (arriba/abajo)  Eje X: adelante/atrás (sagital)
+    float anguloBrazoIzq      = 0.0f;   // elevación brazo izq (eje Z: 0=colgando, +90=arriba)
     float anguloBrazoDer      = 0.0f;   // elevación brazo der
+    float anguloBrazoIzqX     = 0.0f;   // brazo izq adelante(+) / atrás(-) (eje X sagital)
+    float anguloBrazoDerX     = 0.0f;   // brazo der adelante(+) / atrás(-)
 
     // ---- Codos (flexión del antebrazo desde el codo) ----
-    float anguloCodoIzq       = 0.0f;   // 0=extendido, +90=doblado 90°, +150=muy doblado
+    // Eje Z: dobla lateral  Eje X: dobla sagital (hacia adelante)
+    float anguloCodoIzq       = 0.0f;   // 0=extendido, +90=doblado
     float anguloCodoDer       = 0.0f;
+    float anguloCodoIzqX      = 0.0f;   // codo izq hacia adelante/atrás
+    float anguloCodoDerX      = 0.0f;   // codo der hacia adelante/atrás
 
     // ---- Piernas (desde cadera) ----
-    float anguloMusloIzq      = 0.0f;   // 0=de pie, +90=sentado (muslo horizontal)
-    float anguloMusloDer      = 0.0f;
+    // Eje Z: movimiento lateral  Eje X: adelante/atrás (sagital — levantar pierna al frente)
+    float anguloMusloIzq      = 0.0f;   // muslo izq lateral (eje Z)
+    float anguloMusloDer      = 0.0f;   // muslo der lateral
+    float anguloMusloIzqX     = 0.0f;   // muslo izq adelante(+) / atrás(-) (eje X sagital)
+    float anguloMusloDerX     = 0.0f;   // muslo der adelante(+) / atrás(-) — clave para "pierna levantada"
 
     // ---- Rodillas (pantorrilla hacia atrás desde rodilla) ----
-    float anguloRodilla       = 0.0f;   // 0=extendida, +90=pantorrilla horizontal hacia atrás
+    // Eje Z: dobla lateral  Eje X: dobla sagital
+    float anguloRodilla       = 0.0f;   // ambas rodillas eje Z (0=extendida, +90=doblada)
+    float anguloRodillaX      = 0.0f;   // ambas rodillas eje X (sagital)
+
+    // ---- Torso lateral (eje Z) ----
+    float anguloTorsoLateral  = 0.0f;   // inclinación lateral del torso (+= hacia derecha)
 
     // ---- Variables ergonómicas ----
     float pesoCarga           = 0.0f;   // kg

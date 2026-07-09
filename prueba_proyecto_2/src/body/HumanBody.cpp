@@ -148,7 +148,9 @@ void HumanBody::inicializar()
         p.tipoMalla = BodyPart::TipoMalla::Cilindro;
         p.indicePadre = -1;
         p.escala   = {0.30f, 1.00f, 0.30f};
-        p.posicion = {-0.88f, 3.30f, 0.0f};
+        // Y=3.25 en lugar de 3.30: leve overlap con el brazo superior (Y=3.80 tope)
+        // para eliminar el gap visual entre brazo y antebrazo
+        p.posicion = {-0.88f, 3.25f, 0.0f};
         p.rotacionEulerGrados = {0.0f, 0.0f, 5.0f};
         p.color    = {0.60f, 0.85f, 0.60f};
         agregarParte(p);
@@ -297,193 +299,49 @@ void HumanBody::setScenario(const ScenarioData& escenario)
         p.rotacionEulerGrados = p.rotacionBase;
     }
 
-    // ---- Brazo derecho ----
-    if (escenario.anguloBrazoDer != 0.0f)
+    // Helper lambda: rota grupo de partes alrededor de un pivot en el eje dado
+    auto rotarGrupoEje = [&](
+        const std::vector<std::string>& nombres,
+        const glm::vec3& pivot,
+        float angGrados,
+        const glm::vec3& eje,
+        bool actualizarRotZ = false,
+        float deltaZ = 0.0f)
     {
-        // Pivot = tope del BrazoSupDer (hombro derecho)
-        // posicionBase.y + escala.y/2 = 4.35 + 0.55 = 4.90
-        const glm::vec3 pivotDer = {0.82f, 4.90f, 0.0f};
-        // Positivo en Z = antihorario visto desde +Z.
-        // Para el brazo derecho (X positivo), "subir" = rotar en sentido antihorario = positivo.
-        const float angDer = glm::radians(escenario.anguloBrazoDer);
-
-        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angDer, glm::vec3(0.0f, 0.0f, 1.0f));
-
+        if (angGrados == 0.0f) return;
+        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(angGrados), eje);
         for (BodyPart& p : mPartes)
         {
-            const std::string& n = p.nombre;
-            if (n == "BrazoSupDer" || n == "AntebrazoDer" || n == "ManoDer")
+            for (const auto& nm : nombres)
             {
-                // Calcular offset desde el pivot
-                const glm::vec4 offset = {
-                    p.posicionBase.x - pivotDer.x,
-                    p.posicionBase.y - pivotDer.y,
-                    0.0f, 0.0f
-                };
-                const glm::vec4 rotado = rot * offset;
-                p.posicion.x = pivotDer.x + rotado.x;
-                p.posicion.y = pivotDer.y + rotado.y;
-
-                // La orientación del cilindro sigue el mismo ángulo de rotación
-                p.rotacionEulerGrados.z = p.rotacionBase.z + escenario.anguloBrazoDer;
+                if (p.nombre == nm)
+                {
+                    const glm::vec4 off = {
+                        p.posicion.x - pivot.x,
+                        p.posicion.y - pivot.y,
+                        p.posicion.z - pivot.z, 0.0f
+                    };
+                    const glm::vec4 r = rot * off;
+                    p.posicion.x = pivot.x + r.x;
+                    p.posicion.y = pivot.y + r.y;
+                    p.posicion.z = pivot.z + r.z;
+                    if (actualizarRotZ && p.nombre == nm)
+                        p.rotacionEulerGrados.z = p.rotacionBase.z + deltaZ;
+                    break;
+                }
             }
         }
-    }
+    };
 
-    // ---- Brazo izquierdo ----
-    if (escenario.anguloBrazoIzq != 0.0f)
-    {
-        const glm::vec3 pivotIzq = {-0.82f, 4.90f, 0.0f};
-        // Para el brazo izquierdo (X negativo), "subir" = rotar en sentido horario = negativo.
-        const float angIzq = glm::radians(-escenario.anguloBrazoIzq);
-
-        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angIzq, glm::vec3(0.0f, 0.0f, 1.0f));
-
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "BrazoSupIzq" || n == "AntebrazoIzq" || n == "ManoIzq")
-            {
-                const glm::vec4 offset = {
-                    p.posicionBase.x - pivotIzq.x,
-                    p.posicionBase.y - pivotIzq.y,
-                    0.0f, 0.0f
-                };
-                const glm::vec4 rotado = rot * offset;
-                p.posicion.x = pivotIzq.x + rotado.x;
-                p.posicion.y = pivotIzq.y + rotado.y;
-
-                p.rotacionEulerGrados.z = p.rotacionBase.z - escenario.anguloBrazoIzq;
-            }
-        }
-    }
-
-    // ---- Codo derecho ----
-    // Pivot = extremo inferior del BrazoSupDer (Y=4.35-0.55=3.80)
-    if (escenario.anguloCodoDer != 0.0f)
-    {
-        const glm::vec3 pivotCodoDer = {0.82f, 3.80f, 0.0f};
-        const float angCodoDer = glm::radians(escenario.anguloCodoDer);
-        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angCodoDer, glm::vec3(0.0f, 0.0f, 1.0f));
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "AntebrazoDer" || n == "ManoDer")
-            {
-                const glm::vec4 offset = {p.posicion.x - pivotCodoDer.x, p.posicion.y - pivotCodoDer.y, 0.0f, 0.0f};
-                const glm::vec4 rotado = rot * offset;
-                p.posicion.x = pivotCodoDer.x + rotado.x;
-                p.posicion.y = pivotCodoDer.y + rotado.y;
-                p.rotacionEulerGrados.z += escenario.anguloCodoDer;
-            }
-        }
-    }
-
-    // ---- Codo izquierdo ----
-    if (escenario.anguloCodoIzq != 0.0f)
-    {
-        const glm::vec3 pivotCodoIzq = {-0.82f, 3.80f, 0.0f};
-        const float angCodoIzq = glm::radians(-escenario.anguloCodoIzq);
-        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angCodoIzq, glm::vec3(0.0f, 0.0f, 1.0f));
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "AntebrazoIzq" || n == "ManoIzq")
-            {
-                const glm::vec4 offset = {p.posicion.x - pivotCodoIzq.x, p.posicion.y - pivotCodoIzq.y, 0.0f, 0.0f};
-                const glm::vec4 rotado = rot * offset;
-                p.posicion.x = pivotCodoIzq.x + rotado.x;
-                p.posicion.y = pivotCodoIzq.y + rotado.y;
-                p.rotacionEulerGrados.z -= escenario.anguloCodoIzq;
-            }
-        }
-    }
-
-    // ---- Muslo derecho (desde cadera) ----
-    // Pivot = extremo superior del MusloDer (Y=1.95+0.55=2.50)
-    if (escenario.anguloMusloDer != 0.0f)
-    {
-        const glm::vec3 pivotCaderaDer = {0.30f, 2.50f, 0.0f};
-        const float angMusloDer = glm::radians(-escenario.anguloMusloDer);
-        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angMusloDer, glm::vec3(0.0f, 0.0f, 1.0f));
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "MusloDer" || n == "PiernaDer" || n == "PieDer")
-            {
-                const glm::vec4 offset = {p.posicion.x - pivotCaderaDer.x, p.posicion.y - pivotCaderaDer.y, 0.0f, 0.0f};
-                const glm::vec4 rotado = rot * offset;
-                p.posicion.x = pivotCaderaDer.x + rotado.x;
-                p.posicion.y = pivotCaderaDer.y + rotado.y;
-                if (n == "MusloDer") p.rotacionEulerGrados.z -= escenario.anguloMusloDer;
-            }
-        }
-    }
-
-    // ---- Muslo izquierdo (desde cadera) ----
-    if (escenario.anguloMusloIzq != 0.0f)
-    {
-        const glm::vec3 pivotCaderaIzq = {-0.30f, 2.50f, 0.0f};
-        const float angMusloIzq = glm::radians(escenario.anguloMusloIzq);
-        const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angMusloIzq, glm::vec3(0.0f, 0.0f, 1.0f));
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "MusloIzq" || n == "PiernaIzq" || n == "PieIzq")
-            {
-                const glm::vec4 offset = {p.posicion.x - pivotCaderaIzq.x, p.posicion.y - pivotCaderaIzq.y, 0.0f, 0.0f};
-                const glm::vec4 rotado = rot * offset;
-                p.posicion.x = pivotCaderaIzq.x + rotado.x;
-                p.posicion.y = pivotCaderaIzq.y + rotado.y;
-                if (n == "MusloIzq") p.rotacionEulerGrados.z += escenario.anguloMusloIzq;
-            }
-        }
-    }
-
-    // ---- Rodilla derecha ----
-    // Pivot = extremo inferior del muslo (Y=1.95-0.55=1.40)
-    if (escenario.anguloRodilla != 0.0f)
-    {
-        const glm::vec3 pivotRodDer = {0.30f, 1.40f, 0.0f};
-        const float angRodDer = glm::radians(-escenario.anguloRodilla);
-        const glm::mat4 rotRodDer = glm::rotate(glm::mat4(1.0f), angRodDer, glm::vec3(0.0f, 0.0f, 1.0f));
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "PiernaDer" || n == "PieDer")
-            {
-                const glm::vec4 offset = {p.posicion.x - pivotRodDer.x, p.posicion.y - pivotRodDer.y, 0.0f, 0.0f};
-                const glm::vec4 rotado = rotRodDer * offset;
-                p.posicion.x = pivotRodDer.x + rotado.x;
-                p.posicion.y = pivotRodDer.y + rotado.y;
-            }
-        }
-
-        const glm::vec3 pivotRodIzq = {-0.30f, 1.40f, 0.0f};
-        const float angRodIzq = glm::radians(escenario.anguloRodilla);
-        const glm::mat4 rotRodIzq = glm::rotate(glm::mat4(1.0f), angRodIzq, glm::vec3(0.0f, 0.0f, 1.0f));
-        for (BodyPart& p : mPartes)
-        {
-            const std::string& n = p.nombre;
-            if (n == "PiernaIzq" || n == "PieIzq")
-            {
-                const glm::vec4 offset = {p.posicion.x - pivotRodIzq.x, p.posicion.y - pivotRodIzq.y, 0.0f, 0.0f};
-                const glm::vec4 rotado = rotRodIzq * offset;
-                p.posicion.x = pivotRodIzq.x + rotado.x;
-                p.posicion.y = pivotRodIzq.y + rotado.y;
-            }
-        }
-    }
-
-    // ---- Torso ----
+    // ---- TORSO PRIMERO (mueve torso + brazos + cuello como bloque) ----
+    // IMPORTANTE: el torso debe ir antes que los hombros/codos, porque desplaza
+    // los brazos a nuevas posiciones absolutas. Si el torso fuera después, los
+    // pivotes de hombro/codo estarían mal calculados.
     if (escenario.anguloTorso != 0.0f)
     {
-        // Pivot lumbar ≈ parte baja del torso (Y=2.80)
         const glm::vec3 pivotTorso = {0.0f, 2.80f, 0.0f};
         const float angT = glm::radians(escenario.anguloTorso);
         const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angT, glm::vec3(1.0f, 0.0f, 0.0f));
-
-        // Partes que siguen al torso
         const std::vector<std::string> partesTorso = {
             "Pecho", "ZonaLumbar", "Cuello", "Cabeza",
             "BrazoSupIzq", "AntebrazoIzq", "ManoIzq",
@@ -498,8 +356,7 @@ void HumanBody::setScenario(const ScenarioData& escenario)
                     const glm::vec4 offset = {
                         p.posicion.x - pivotTorso.x,
                         p.posicion.y - pivotTorso.y,
-                        p.posicion.z - pivotTorso.z,
-                        0.0f
+                        p.posicion.z - pivotTorso.z, 0.0f
                     };
                     const glm::vec4 rotado = rot * offset;
                     p.posicion.x = pivotTorso.x + rotado.x;
@@ -510,6 +367,85 @@ void HumanBody::setScenario(const ScenarioData& escenario)
                 }
             }
         }
+    }
+
+    // Helper lambda: busca posición actual de una parte por nombre
+    auto posActual = [&](const std::string& nombre, const glm::vec3& fallback) -> glm::vec3
+    {
+        for (const BodyPart& p : mPartes)
+            if (p.nombre == nombre) return p.posicion;
+        return fallback;
+    };
+
+    // ---- Brazo derecho (Z=lateral/arriba, X=sagital) ----
+    // NOTA: en nuestro sistema, eje X positivo = hacia ATRÁS del muñeco.
+    // Por eso negamos anguloBrazoDerX para que + = hacia ADELANTE (donde miran los pies).
+    {
+        const glm::vec3 posBrazoDer = posActual("BrazoSupDer", {0.82f, 4.35f, 0.0f});
+        const glm::vec3 pivotDer    = {posBrazoDer.x, posBrazoDer.y + 0.55f, posBrazoDer.z};
+        const std::vector<std::string> grpDer = {"BrazoSupDer","AntebrazoDer","ManoDer"};
+        rotarGrupoEje(grpDer, pivotDer,  escenario.anguloBrazoDer,   {0,0,1}, true,  escenario.anguloBrazoDer);
+        rotarGrupoEje(grpDer, pivotDer, -escenario.anguloBrazoDerX,  {1,0,0}, false, 0.0f); // negado: + = adelante
+    }
+
+    // ---- Brazo izquierdo ----
+    {
+        const glm::vec3 posBrazoIzq = posActual("BrazoSupIzq", {-0.82f, 4.35f, 0.0f});
+        const glm::vec3 pivotIzq    = {posBrazoIzq.x, posBrazoIzq.y + 0.55f, posBrazoIzq.z};
+        const std::vector<std::string> grpIzq = {"BrazoSupIzq","AntebrazoIzq","ManoIzq"};
+        rotarGrupoEje(grpIzq, pivotIzq, -escenario.anguloBrazoIzq,   {0,0,1}, true, -escenario.anguloBrazoIzq);
+        rotarGrupoEje(grpIzq, pivotIzq, -escenario.anguloBrazoIzqX,  {1,0,0}, false, 0.0f); // negado: + = adelante
+    }
+
+    // ---- Codo derecho ----
+    {
+        const glm::vec3 posBrazoDer  = posActual("BrazoSupDer", {0.82f, 4.35f, 0.0f});
+        const glm::vec3 pivotCodoDer = {posBrazoDer.x, posBrazoDer.y - 0.55f, posBrazoDer.z};
+        const std::vector<std::string> grpCodoDer = {"AntebrazoDer","ManoDer"};
+        rotarGrupoEje(grpCodoDer, pivotCodoDer,  escenario.anguloCodoDer,   {0,0,1}, true, escenario.anguloCodoDer);
+        rotarGrupoEje(grpCodoDer, pivotCodoDer, -escenario.anguloCodoDerX,  {1,0,0}, false, 0.0f); // negado
+    }
+
+    // ---- Codo izquierdo ----
+    {
+        const glm::vec3 posBrazoIzq  = posActual("BrazoSupIzq", {-0.82f, 4.35f, 0.0f});
+        const glm::vec3 pivotCodoIzq = {posBrazoIzq.x, posBrazoIzq.y - 0.55f, posBrazoIzq.z};
+        const std::vector<std::string> grpCodoIzq = {"AntebrazoIzq","ManoIzq"};
+        rotarGrupoEje(grpCodoIzq, pivotCodoIzq, -escenario.anguloCodoIzq,   {0,0,1}, true, -escenario.anguloCodoIzq);
+        rotarGrupoEje(grpCodoIzq, pivotCodoIzq, -escenario.anguloCodoIzqX,  {1,0,0}, false, 0.0f); // negado
+    }
+
+    // ---- Muslo derecho (eje Z lateral, eje X sagital) ----
+    // Negamos anguloMusloDerX para que + = pierna hacia ADELANTE (donde miran los pies)
+    {
+        const glm::vec3 pivotCaderaDer = {0.30f, 2.50f, 0.0f};
+        const std::vector<std::string> grpMusloDer = {"MusloDer","PiernaDer","PieDer"};
+        rotarGrupoEje(grpMusloDer, pivotCaderaDer, -escenario.anguloMusloDer,   {0,0,1}, true, -escenario.anguloMusloDer);
+        rotarGrupoEje(grpMusloDer, pivotCaderaDer, -escenario.anguloMusloDerX,  {1,0,0}, false, 0.0f); // negado: + = adelante
+    }
+
+    // ---- Muslo izquierdo ----
+    {
+        const glm::vec3 pivotCaderaIzq = {-0.30f, 2.50f, 0.0f};
+        const std::vector<std::string> grpMusloIzq = {"MusloIzq","PiernaIzq","PieIzq"};
+        rotarGrupoEje(grpMusloIzq, pivotCaderaIzq,  escenario.anguloMusloIzq,   {0,0,1}, true, escenario.anguloMusloIzq);
+        rotarGrupoEje(grpMusloIzq, pivotCaderaIzq, -escenario.anguloMusloIzqX,  {1,0,0}, false, 0.0f); // negado
+    }
+
+    // ---- Rodilla derecha ----
+    {
+        const glm::vec3 pivotRodDer = {0.30f, 1.40f, 0.0f};
+        const std::vector<std::string> grpRodDer = {"PiernaDer","PieDer"};
+        rotarGrupoEje(grpRodDer, pivotRodDer, -escenario.anguloRodilla,   {0,0,1}, false, 0.0f);
+        rotarGrupoEje(grpRodDer, pivotRodDer, -escenario.anguloRodillaX,  {1,0,0}, false, 0.0f); // negado
+    }
+
+    // ---- Rodilla izquierda ----
+    {
+        const glm::vec3 pivotRodIzq = {-0.30f, 1.40f, 0.0f};
+        const std::vector<std::string> grpRodIzq = {"PiernaIzq","PieIzq"};
+        rotarGrupoEje(grpRodIzq, pivotRodIzq,  escenario.anguloRodilla,   {0,0,1}, false, 0.0f);
+        rotarGrupoEje(grpRodIzq, pivotRodIzq, -escenario.anguloRodillaX,  {1,0,0}, false, 0.0f); // negado
     }
 
     actualizarJerarquia();

@@ -1,45 +1,60 @@
 #pragma once
-
 #include "../Types.h"
 
 // ==========================================================================
 // Escenario_LevantamientoIncorrecto.h
 //
-// POSTURA CRITICA — Levantamiento de carga con técnica incorrecta.
+// Levantamiento de carga del suelo con tecnica incorrecta.
+// El error principal es doblar la espalda en vez de las rodillas.
 //
-// Descripción ergonómica:
-//   La persona levanta una carga pesada con el torso muy inclinado hacia
-//   adelante y los brazos extendidos, en lugar de doblar las rodillas.
-//   Esta es una de las posturas más peligrosas en ergonomía laboral.
+// Postura natural resultante:
+//   - Torso 45° hacia adelante (espalda doblada — CRITICO)
+//   - Brazos extendidos al frente + ligeramente abiertos
+//   - Codos doblados hacia abajo para tomar la carga
+//   - Piernas casi rectas (deberia doblar rodillas)
+//   - Cuello leve flexion para mirar la carga
 //
-// Zonas de riesgo esperadas:
-//   Lumbar  → ROJO   (~74 pts): torso 50° + 20kg + distancia 0.6m
-//   Hombros → ROJO   (~73 pts): brazos 60° + 20kg de carga
-//   Cuello  → AMARILLO (~32 pts): cuello 20° inclinado para ver la carga
-//   Rodillas → VERDE  (~7 pts): piernas casi rectas (postura incorrecta)
+// Zonas de riesgo:
+//   Lumbar   → ROJO     (~70 pts): torso 45° + 20kg + 0.6m
+//   Hombros  → AMARILLO (~45 pts): brazos al frente + carga
+//   Cuello   → AMARILLO (~25 pts): cuello 15° flexionado
+//   Rodillas → VERDE    (~ 5 pts): piernas casi rectas
 // ==========================================================================
 inline ScenarioData crearEscenarioLevantamientoIncorrecto()
 {
     ScenarioData s;
     s.nombre      = "Levantamiento incorrecto";
-    s.descripcion = "Carga pesada levantada con torso inclinado y brazos extendidos. "
-                    "Maximos riesgos en zona lumbar y hombros.";
+    s.descripcion = "Levantamiento del suelo doblando la espalda. "
+                    "Riesgo critico en zona lumbar.";
 
-    // ---- Articulaciones ----
-    s.anguloTorso    = 50.0f;   // torso muy inclinado hacia adelante
-    s.anguloCuello   = 20.0f;   // cuello flexionado para mirar la carga
-    s.anguloBrazoDer = 60.0f;   // brazos extendidos al frente
-    s.anguloBrazoIzq = 60.0f;
-    s.anguloCodoDer  = 20.0f;   // codos ligeramente doblados
-    s.anguloCodoIzq  = 20.0f;
-    s.anguloMusloDer = 10.0f;   // piernas casi rectas (postura INCORRECTA)
-    s.anguloMusloIzq = 10.0f;
-    s.anguloRodilla  = 10.0f;
+    // ---- Torso: inclinado hacia adelante (el error principal) ----
+    s.anguloTorso     = 45.0f;   // espalda doblada 45° (INCORRECTO — deberia doblar rodillas)
+
+    // ---- Cuello: leve flexion para mirar la carga ----
+    s.anguloCuello    = 15.0f;
+
+    // ---- Brazos: extendidos al frente + ligeramente abiertos ----
+    // Combinacion de eje X (hacia adelante) y eje Z (laterales) = natural al tomar una caja
+    s.anguloBrazoDerX = 35.0f;   // brazo derecho hacia adelante
+    s.anguloBrazoIzqX = 35.0f;   // brazo izquierdo hacia adelante
+    s.anguloBrazoDer  = 25.0f;   // ligeramente elevados/abiertos (eje Z)
+    s.anguloBrazoIzq  = 25.0f;
+
+    // ---- Codos: doblados tomando la carga (eje X = dobla hacia abajo) ----
+    s.anguloCodoDerX  = 35.0f;   // codo derecho dobla hacia abajo/adelante
+    s.anguloCodoIzqX  = 35.0f;   // codo izquierdo
+    s.anguloCodoDer   = 10.0f;   // leve doblez lateral
+    s.anguloCodoIzq   = 10.0f;
+
+    // ---- Piernas casi rectas (postura INCORRECTA para levantar) ----
+    s.anguloMusloDer  = 5.0f;
+    s.anguloMusloIzq  = 5.0f;
+    s.anguloRodilla   = 10.0f;
 
     // ---- Variables ergonómicas ----
-    s.pesoCarga        = 20.0f; // kg — carga pesada
-    s.distanciaCarga   = 0.60f; // metros — carga alejada del cuerpo
-    s.tiempoExposicion = 15.0f; // minutos
+    s.pesoCarga        = 20.0f;  // kg — carga pesada
+    s.distanciaCarga   = 0.60f;  // metros del cuerpo
+    s.tiempoExposicion = 15.0f;  // minutos
 
     return s;
 }
