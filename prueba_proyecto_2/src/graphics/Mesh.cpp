@@ -120,6 +120,50 @@ bool Mesh::crearConUV(const float* datos, int cantidadFloats)
     return true;
 }
 
+bool Mesh::crearConUVNormal(const float* datos, int cantidadFloats)
+{
+    // Cada vértice: x,y,z, u,v, nx,ny,nz → 8 floats
+    if (!datos || cantidadFloats <= 0 || (cantidadFloats % 8) != 0)
+    {
+        std::cout << "Mesh: datos UVNormal inválidos (deben ser múltiplo de 8).\n";
+        return false;
+    }
+
+    if (mVbo != 0) glDeleteBuffers(1, &mVbo);
+    if (mVao != 0) glDeleteVertexArrays(1, &mVao);
+    mVbo = 0; mVao = 0;
+
+    mCantidadVertices = cantidadFloats / 8;
+    mTieneUV     = true;
+    mTieneNormal = true;
+
+    glGenVertexArrays(1, &mVao);
+    glGenBuffers(1, &mVbo);
+
+    glBindVertexArray(mVao);
+    glBindBuffer(GL_ARRAY_BUFFER, mVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * cantidadFloats, datos, GL_STATIC_DRAW);
+
+    const int stride = 8 * sizeof(float);
+
+    // layout(location = 0) → vec3 posición
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // layout(location = 1) → vec2 UV
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // layout(location = 2) → vec3 normal
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(5 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    return true;
+}
+
 void Mesh::dibujar() const
 {
     glBindVertexArray(mVao);

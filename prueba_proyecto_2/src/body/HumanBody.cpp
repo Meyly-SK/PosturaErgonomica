@@ -529,6 +529,32 @@ bool HumanBody::debeDibujarse(const BodyPart& parte) const
 }
 
 // ---------------------------------------------------------------------------
+// dibujarConPhong — igual que dibujarConTextura pero usa shader Phong
+// ---------------------------------------------------------------------------
+void HumanBody::dibujarConPhong(Renderer& renderer,
+                                const Mesh& meshCuboN,
+                                const Mesh& meshCilindroN,
+                                const Mesh& meshEsferaN,
+                                const Camera& camara,
+                                const Textura& textura,
+                                const glm::vec3& posLuz) const
+{
+    for (const BodyPart& p : mPartes)
+    {
+        if (!debeDibujarse(p)) continue;
+        const Mesh* mesh = &meshCuboN;
+        switch (p.tipoMalla)
+        {
+        case BodyPart::TipoMalla::Cilindro: mesh = &meshCilindroN; break;
+        case BodyPart::TipoMalla::Esfera:   mesh = &meshEsferaN;   break;
+        default:                             mesh = &meshCuboN;     break;
+        }
+        const float mezcla = (p.zona == ZonaRiesgo::Ninguna) ? 0.05f : 0.55f;
+        renderer.dibujarConPhong(*mesh, p.matrizMundo, p.color, camara, textura, mezcla, posLuz);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // dibujarConTextura
 //
 // Lógica de mezcla:

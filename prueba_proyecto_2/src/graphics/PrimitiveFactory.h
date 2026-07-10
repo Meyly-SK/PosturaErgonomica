@@ -17,4 +17,11 @@ public:
     static Mesh crearCuboUV();
     static Mesh crearCilindroUV(float radio, float alto, int segmentos);
     static Mesh crearEsferaUV(float radio, int sectores, int anillos);
+
+    // ---- Con UV + Normales (para iluminación Phong) ----
+    // Cada vértice tiene: (x,y,z, u,v, nx,ny,nz)
+    // Las normales permiten calcular difuso y especular en el shader.
+    static Mesh crearCuboUVNormal();
+    static Mesh crearCilindroUVNormal(float radio, float alto, int segmentos);
+    static Mesh crearEsferaUVNormal(float radio, int sectores, int anillos);
 };

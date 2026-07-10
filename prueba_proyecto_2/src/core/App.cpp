@@ -37,6 +37,14 @@ static Mesh gCuboUV;
 static Mesh gCilindroUV;
 static Mesh gEsferaUV;
 
+// Meshes con UV + Normales (para iluminación Phong)
+static Mesh gCuboN;
+static Mesh gCilindroN;
+static Mesh gEsferaN;
+
+// Posición de la luz (fija, espacio mundo)
+static const glm::vec3 kPosLuz = {2.0f, 6.0f, 4.0f};
+
 // Textura de madera
 static Textura gTexturaMadera;
 
@@ -132,6 +140,11 @@ bool App::inicializar()
         gCuboUV     = PrimitiveFactory::crearCuboUV();
         gCilindroUV = PrimitiveFactory::crearCilindroUV(0.5f, 1.0f, 20);
         gEsferaUV   = PrimitiveFactory::crearEsferaUV(0.5f, 20, 12);
+
+        // Meshes con UV + Normales (iluminación Phong)
+        gCuboN     = PrimitiveFactory::crearCuboUVNormal();
+        gCilindroN = PrimitiveFactory::crearCilindroUVNormal(0.5f, 1.0f, 20);
+        gEsferaN   = PrimitiveFactory::crearEsferaUVNormal(0.5f, 20, 12);
 
         // Cargar textura de madera (ruta relativa al directorio de trabajo del exe)
         // El exe se genera en x64/Debug/, así que la ruta es relativa a ahí.
@@ -254,11 +267,11 @@ void App::renderizar()
 
     gCuerpo.actualizarJerarquia();
 
-    // Usar textura de madera si está lista, de lo contrario color sólido
+    // Usar Phong si textura y normales están listas, de lo contrario fallback
     if (gTexturaMadera.estaLista())
     {
-        gCuerpo.dibujarConTextura(gRenderer, gCuboUV, gCilindroUV, gEsferaUV,
-                                  gCamara, gTexturaMadera);
+        gCuerpo.dibujarConPhong(gRenderer, gCuboN, gCilindroN, gEsferaN,
+                                gCamara, gTexturaMadera, kPosLuz);
     }
     else
     {

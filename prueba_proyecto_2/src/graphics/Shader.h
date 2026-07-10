@@ -20,6 +20,7 @@ public:
 
     // Setters de uniforms
     void setMat4 (const char* nombre, const float* ptrMat4) const;
+    void setMat3 (const char* nombre, const float* ptrMat3) const;  // para matriz normal Phong
     void setVec3 (const char* nombre, float x, float y, float z) const;
     void setFloat(const char* nombre, float valor) const;
     void setInt  (const char* nombre, int valor) const;

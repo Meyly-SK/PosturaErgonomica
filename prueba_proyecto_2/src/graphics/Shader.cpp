@@ -78,6 +78,11 @@ void Shader::usar() const
     glUseProgram(mPrograma);
 }
 
+void Shader::setMat3(const char* nombre, const float* ptrMat3) const
+{
+    glUniformMatrix3fv(glGetUniformLocation(mPrograma, nombre), 1, GL_FALSE, ptrMat3);
+}
+
 void Shader::setMat4(const char* nombre, const float* ptrMat4) const
 {
     const GLint loc = glGetUniformLocation(mPrograma, nombre);

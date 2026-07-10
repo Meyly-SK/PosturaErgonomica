@@ -59,6 +59,16 @@ public:
                            const Camera& camara,
                            const Textura& textura) const;
 
+    // Dibuja con iluminación Phong (textura + tinte de riesgo + luz difusa/especular).
+    // Requiere meshes con normales (crearConUVNormal).
+    void dibujarConPhong(Renderer& renderer,
+                         const Mesh& meshCuboN,
+                         const Mesh& meshCilindroN,
+                         const Mesh& meshEsferaN,
+                         const Camera& camara,
+                         const Textura& textura,
+                         const glm::vec3& posLuz) const;
+
 private:
     std::vector<BodyPart> mPartes;
     ModoDebug mModoDebug = ModoDebug::Completo;
