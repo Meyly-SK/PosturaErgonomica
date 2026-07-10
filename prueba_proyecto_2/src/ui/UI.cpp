@@ -55,8 +55,9 @@ void UI::nuevaFrame()
 //   - Barras de progreso con colores para cada zona de riesgo
 //   - Controles disponibles
 // ---------------------------------------------------------------------------
-void UI::dibujarPanel(const ScenarioManager& escenarios, const RiskData& riesgo)
+ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios, const RiskData& riesgo)
 {
+    ResultadoUI resultado;
     const ScenarioData& s = escenarios.getActual();
 
     // Posición y tamaño fijos (esquina superior izquierda)
@@ -140,12 +141,60 @@ void UI::dibujarPanel(const ScenarioManager& escenarios, const RiskData& riesgo)
 
     ImGui::Separator();
 
+    // ---- Botones de selección directa de escenario ----
+    ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Escenarios:");
+    ImGui::Spacing();
+
+    const int total   = escenarios.getTotalEscenarios();
+    const int actual  = escenarios.getIndiceActual();
+
+    for (int i = 0; i < total; i++)
+    {
+        // Resaltar el botón del escenario activo con otro color
+        const bool esActivo = (i == actual);
+        if (esActivo)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.85f, 1.0f));
+
+        // Etiqueta: "N. Nombre del escenario" — usa getNombreEscenario para todos
+        char etiqueta[128];
+        std::snprintf(etiqueta, sizeof(etiqueta), "%d. %s", i + 1,
+                      escenarios.getNombreEscenario(i).c_str());
+
+        if (ImGui::Button(etiqueta, ImVec2(-1.0f, 0.0f)))
+        {
+            if (!esActivo)
+            {
+                resultado.accion        = AccionUI::IrA;
+                resultado.indiceDestino = i;
+            }
+        }
+
+        if (esActivo)
+            ImGui::PopStyleColor();
+    }
+
+    ImGui::Spacing();
+
+    // ---- Botones de navegación secuencial ◀ / ▶ ----
+    const float anchoBoton = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+
+    if (ImGui::Button("< Anterior", ImVec2(anchoBoton, 0.0f)))
+        resultado.accion = AccionUI::Anterior;
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Siguiente >", ImVec2(anchoBoton, 0.0f)))
+        resultado.accion = AccionUI::Siguiente;
+
+    ImGui::Separator();
+
     // ---- Controles ----
     ImGui::TextDisabled("N/P = cambiar escenario");
     ImGui::TextDisabled("WASD + Mouse = camara");
     ImGui::TextDisabled("M = toggle mouse | ESC = salir");
 
     ImGui::End();
+    return resultado;
 }
 
 // ---------------------------------------------------------------------------

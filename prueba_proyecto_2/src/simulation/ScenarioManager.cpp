@@ -38,6 +38,13 @@ void ScenarioManager::anterior()
                     % static_cast<int>(mEscenarios.size());
 }
 
+void ScenarioManager::irA(int indice)
+{
+    if (mEscenarios.empty()) return;
+    if (indice < 0 || indice >= static_cast<int>(mEscenarios.size())) return;
+    mIndiceActual = indice;
+}
+
 const ScenarioData& ScenarioManager::getActual() const
 {
     return mEscenarios[mIndiceActual];
@@ -51,4 +58,12 @@ int ScenarioManager::getIndiceActual() const
 int ScenarioManager::getTotalEscenarios() const
 {
     return static_cast<int>(mEscenarios.size());
+}
+
+const std::string& ScenarioManager::getNombreEscenario(int indice) const
+{
+    static const std::string vacio = "";
+    if (indice < 0 || indice >= static_cast<int>(mEscenarios.size()))
+        return vacio;
+    return mEscenarios[indice].nombre;
 }

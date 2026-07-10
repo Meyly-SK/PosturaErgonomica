@@ -22,6 +22,7 @@ public:
     // Navegar entre escenarios (circulares)
     void siguiente();
     void anterior();
+    void irA(int indice);   // saltar directamente a un escenario por índice
 
     // Obtener el escenario activo
     const ScenarioData& getActual() const;
@@ -29,6 +30,7 @@ public:
     // Información para UI
     int getIndiceActual()     const;
     int getTotalEscenarios()  const;
+    const std::string& getNombreEscenario(int indice) const;  // nombre sin cambiar estado
 
 private:
     std::vector<ScenarioData> mEscenarios;

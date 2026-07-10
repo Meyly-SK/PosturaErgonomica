@@ -255,9 +255,35 @@ void App::actualizar(float deltaTiempo)
     const RiskData riesgo = gAnalizador.analizar(escenarioVisible);
     gCuerpo.applyRisk(riesgo);
 
-    // H5: preparar nuevo frame de UI
+    // H5 + H6-D: preparar frame de UI y procesar botones
     UI::nuevaFrame();
-    UI::dibujarPanel(gEscenarios, riesgo);
+    const ResultadoUI accionUI = UI::dibujarPanel(gEscenarios, riesgo);
+
+    // Procesar la acción solicitada por los botones de la UI
+    if (accionUI.accion == AccionUI::Anterior)
+    {
+        gEscenarios.anterior();
+        const float t = glm::smoothstep(0.0f, 1.0f, gProgresoTransicion);
+        gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
+        gEscenarioDestino = gEscenarios.getActual();
+        gProgresoTransicion = 0.0f;
+    }
+    else if (accionUI.accion == AccionUI::Siguiente)
+    {
+        gEscenarios.siguiente();
+        const float t = glm::smoothstep(0.0f, 1.0f, gProgresoTransicion);
+        gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
+        gEscenarioDestino = gEscenarios.getActual();
+        gProgresoTransicion = 0.0f;
+    }
+    else if (accionUI.accion == AccionUI::IrA)
+    {
+        gEscenarios.irA(accionUI.indiceDestino);
+        const float t = glm::smoothstep(0.0f, 1.0f, gProgresoTransicion);
+        gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
+        gEscenarioDestino = gEscenarios.getActual();
+        gProgresoTransicion = 0.0f;
+    }
 }
 
 void App::renderizar()
