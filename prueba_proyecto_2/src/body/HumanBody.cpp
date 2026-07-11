@@ -42,9 +42,19 @@ void HumanBody::inicializar()
     // Para cilindro centrado: offsetV.y = -escala.y/2 hace que cuelgue desde el pivote.
 
     // ---- CABEZA ----
-    { BodyPart p; p.nombre="Cabeza"; p.tipoMalla=BodyPart::TipoMalla::Esfera;
-      p.indicePadre=-1; p.escala={1.20f,1.20f,0.90f}; p.posicion={0.0f,6.30f,0.0f};
-      p.color={0.92f,0.85f,0.80f}; agregarParte(p); }
+    const int iCabeza = [&]() {
+        BodyPart p; p.nombre="Cabeza"; p.tipoMalla=BodyPart::TipoMalla::Esfera;
+        p.indicePadre=-1; p.escala={1.20f,1.20f,0.90f}; p.posicion={0.0f,6.30f,0.0f};
+        p.color={0.92f,0.85f,0.80f}; return agregarParte(p);
+    }();
+
+    // ---- NARIZ (hijo de la cabeza, decorativa) ----
+    { BodyPart p; p.nombre="Nariz"; p.tipoMalla=BodyPart::TipoMalla::Esfera;
+      p.zona=ZonaRiesgo::Ninguna; p.indicePadre=iCabeza;
+      p.escala={0.18f,0.18f,0.28f};   // esfera alargada hacia adelante
+      p.posicion={0.0f,0.0f,0.0f};
+      p.offsetVisual={0.0f, -0.05f, 0.48f};  // adelante y ligeramente abajo del centro
+      p.color={0.85f,0.72f,0.65f}; agregarParte(p); }
 
     // ---- CUELLO ----
     { BodyPart p; p.nombre="Cuello"; p.tipoMalla=BodyPart::TipoMalla::Cilindro;
@@ -151,6 +161,28 @@ void HumanBody::inicializar()
         mn.offsetVisual = {0.0f, -0.14f, 0.0f};
         mn.color = {0.92f, 0.85f, 0.80f};
         agregarParte(mn);
+
+        // Junta hombro: esfera decorativa en la articulación del hombro
+        BodyPart jH;
+        jH.nombre = "JuntaHombro" + lado;
+        jH.tipoMalla = BodyPart::TipoMalla::Esfera;
+        jH.zona = ZonaRiesgo::Ninguna;
+        jH.indicePadre = iPivH;
+        jH.escala = {0.28f, 0.28f, 0.28f};
+        jH.posicion = {0.0f, 0.0f, 0.0f};
+        jH.color = {0.72f, 0.65f, 0.58f};  // color hueso/articulación
+        agregarParte(jH);
+
+        // Junta codo: esfera decorativa en el codo
+        BodyPart jC;
+        jC.nombre = "JuntaCodo" + lado;
+        jC.tipoMalla = BodyPart::TipoMalla::Esfera;
+        jC.zona = ZonaRiesgo::Ninguna;
+        jC.indicePadre = iPivC;
+        jC.escala = {0.22f, 0.22f, 0.22f};
+        jC.posicion = {0.0f, 0.0f, 0.0f};
+        jC.color = {0.72f, 0.65f, 0.58f};
+        agregarParte(jC);
     };
 
     crearBrazo(-1.0f); // izquierdo
@@ -232,6 +264,17 @@ void HumanBody::inicializar()
         pi.offsetVisual = {xSign * 0.06f, -0.10f, 0.15f}; // pie separado hacia afuera
         pi.color = {0.35f, 0.35f, 0.40f};
         agregarParte(pi);
+
+        // Junta rodilla: esfera decorativa en la rodilla
+        BodyPart jRod;
+        jRod.nombre = "JuntaRodilla" + lado;
+        jRod.tipoMalla = BodyPart::TipoMalla::Esfera;
+        jRod.zona = ZonaRiesgo::Ninguna;
+        jRod.indicePadre = iPivRod;
+        jRod.escala = {0.28f, 0.28f, 0.28f};
+        jRod.posicion = {0.0f, 0.0f, 0.0f};
+        jRod.color = {0.72f, 0.65f, 0.58f};
+        agregarParte(jRod);
     };
 
     crearPierna(-1.0f); // izquierda
