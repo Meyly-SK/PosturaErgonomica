@@ -164,6 +164,11 @@ bool App::inicializar()
         gEscenarios.inicializarEscenariosDefault();
         gCuerpo.setScenario(gEscenarios.getActual());
 
+        // Inicializar el sistema de transición con el escenario inicial
+        // para evitar que la primera transición arranque desde postura vacía (ceros)
+        gEscenarioOrigen  = gEscenarios.getActual();
+        gEscenarioDestino = gEscenarios.getActual();
+
         // Inicializar panel UI (ImGui)
         UI::inicializar(gVentana);
 
