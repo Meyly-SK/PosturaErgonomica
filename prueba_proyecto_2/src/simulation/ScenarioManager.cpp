@@ -6,6 +6,7 @@
 #include "escenarios/Escenario_BrazoDerecho90.h"
 #include "escenarios/Escenario_LevantamientoIncorrecto.h"
 #include "escenarios/Escenario_PiernaLateral.h"
+#include "escenarios/Escenario_TrabajoComputadora.h"
 // PUNTO DE EXTENSIÓN: agrega aquí el include de tu escenario nuevo:
 // #include "escenarios/Escenario_MiPostura.h"
 
@@ -19,6 +20,7 @@ void ScenarioManager::inicializarEscenariosDefault()
     mEscenarios.push_back(crearEscenarioBrazoDerecho90());
     mEscenarios.push_back(crearEscenarioLevantamientoIncorrecto());
     mEscenarios.push_back(crearEscenarioPiernaLateral());
+    mEscenarios.push_back(crearEscenarioTrabajoComputadora());
     // PUNTO DE EXTENSIÓN: agrega aquí tu escenario:
     // mEscenarios.push_back(crearEscenarioMiPostura());
 
