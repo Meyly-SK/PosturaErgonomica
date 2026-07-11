@@ -49,7 +49,8 @@ inline ScenarioData crearEscenarioLevantamientoIncorrecto()
     // ---- Piernas casi rectas (postura INCORRECTA para levantar) ----
     s.anguloMusloDer  = 5.0f;
     s.anguloMusloIzq  = 5.0f;
-    s.anguloRodilla   = 10.0f;
+    s.anguloRodillaDer = 10.0f;
+    s.anguloRodillaIzq = 10.0f;
 
     // ---- Variables ergonómicas ----
     s.pesoCarga        = 20.0f;  // kg — carga pesada

@@ -125,9 +125,11 @@ ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios,
     };
 
     barraRiesgo("Lumbar",   riesgo.riesgoLumbar);
-    barraRiesgo("Hombros",  riesgo.riesgoHombros);
+    barraRiesgo("Hombro D", riesgo.riesgoHombroDer);
+    barraRiesgo("Hombro I", riesgo.riesgoHombroIzq);
     barraRiesgo("Cuello",   riesgo.riesgoCuello);
-    barraRiesgo("Rodillas", riesgo.riesgoRodillas);
+    barraRiesgo("Rodilla D",riesgo.riesgoRodillaDer);
+    barraRiesgo("Rodilla I",riesgo.riesgoRodillaIzq);
 
     // ---- Variables del escenario (si hay carga) ----
     if (s.pesoCarga > 0.0f || s.tiempoExposicion > 0.0f)
@@ -246,40 +248,48 @@ ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios,
 
         if (ImGui::CollapsingHeader("Brazo derecho"))
         {
-            sliderAng("Elevacion Z (izq/der)",  sEditable.anguloBrazoDer,  -90.0f, 90.0f);
-            sliderAng("Sagital X (ad/at)",       sEditable.anguloBrazoDerX, -90.0f, 90.0f);
-            sliderAng("Codo Z (dobla)",          sEditable.anguloCodoDer,    0.0f, 150.0f);
-            sliderAng("Codo X (sagital)",        sEditable.anguloCodoDerX, -90.0f, 90.0f);
-            sliderAng("Muneca Y (pronacioon)",   sEditable.anguloManoDerY,  -90.0f, 90.0f);
-            sliderAng("Muneca X (flexion)",      sEditable.anguloManoDerX,  -60.0f, 60.0f);
+            ImGui::PushID("brazo_der");
+            sliderAng("Elevacion Z", sEditable.anguloBrazoDer,  -90.0f, 90.0f);
+            sliderAng("Sagital X",   sEditable.anguloBrazoDerX, -90.0f, 90.0f);
+            sliderAng("Codo Z",      sEditable.anguloCodoDer,    0.0f, 150.0f);
+            sliderAng("Codo X",      sEditable.anguloCodoDerX, -90.0f, 90.0f);
+            sliderAng("Muneca Y",    sEditable.anguloManoDerY,  -90.0f, 90.0f);
+            sliderAng("Muneca X",    sEditable.anguloManoDerX,  -60.0f, 60.0f);
+            ImGui::PopID();
         }
 
         if (ImGui::CollapsingHeader("Brazo izquierdo"))
         {
-            sliderAng("Elevacion Z (izq/der)",  sEditable.anguloBrazoIzq,  -90.0f, 90.0f);
-            sliderAng("Sagital X (ad/at)",       sEditable.anguloBrazoIzqX, -90.0f, 90.0f);
-            sliderAng("Codo Z (dobla)",          sEditable.anguloCodoIzq,    0.0f, 150.0f);
-            sliderAng("Codo X (sagital)",        sEditable.anguloCodoIzqX, -90.0f, 90.0f);
-            sliderAng("Muneca Y (pronacion)",    sEditable.anguloManoIzqY,  -90.0f, 90.0f);
-            sliderAng("Muneca X (flexion)",      sEditable.anguloManoIzqX,  -60.0f, 60.0f);
+            ImGui::PushID("brazo_izq");
+            sliderAng("Elevacion Z", sEditable.anguloBrazoIzq,  -90.0f, 90.0f);
+            sliderAng("Sagital X",   sEditable.anguloBrazoIzqX, -90.0f, 90.0f);
+            sliderAng("Codo Z",      sEditable.anguloCodoIzq,    0.0f, 150.0f);
+            sliderAng("Codo X",      sEditable.anguloCodoIzqX, -90.0f, 90.0f);
+            sliderAng("Muneca Y",    sEditable.anguloManoIzqY,  -90.0f, 90.0f);
+            sliderAng("Muneca X",    sEditable.anguloManoIzqX,  -60.0f, 60.0f);
+            ImGui::PopID();
         }
 
         if (ImGui::CollapsingHeader("Pierna derecha"))
         {
-            sliderAng("Lateral Z (izq/der)",   sEditable.anguloMusloDer,   -60.0f, 60.0f);
-            sliderAng("Sagital X (ad/at)",      sEditable.anguloMusloDerX,  -90.0f, 90.0f);
-            sliderAng("Rodilla Z",              sEditable.anguloRodilla,     0.0f, 90.0f);
-            sliderAng("Pie Y (giro axial)",     sEditable.anguloPieDerY,    -45.0f, 45.0f);
-            sliderAng("Pie X (dorsiflexion)",   sEditable.anguloPieDerX,    -30.0f, 30.0f);
+            ImGui::PushID("pierna_der");
+            sliderAng("Lateral Z",      sEditable.anguloMusloDer,    -60.0f, 60.0f);
+            sliderAng("Sagital X",      sEditable.anguloMusloDerX,   -90.0f, 90.0f);
+            sliderAng("Rodilla Z",      sEditable.anguloRodillaDer,   0.0f, 90.0f);
+            sliderAng("Pie Y (axial)",  sEditable.anguloPieDerY,     -45.0f, 45.0f);
+            sliderAng("Pie X (flex)",   sEditable.anguloPieDerX,     -30.0f, 30.0f);
+            ImGui::PopID();
         }
 
         if (ImGui::CollapsingHeader("Pierna izquierda"))
         {
-            sliderAng("Lateral Z (izq/der)",   sEditable.anguloMusloIzq,   -60.0f, 60.0f);
-            sliderAng("Sagital X (ad/at)",      sEditable.anguloMusloIzqX,  -90.0f, 90.0f);
-            sliderAng("Rodilla Z",              sEditable.anguloRodillaX,    0.0f, 90.0f);
-            sliderAng("Pie Y (giro axial)",     sEditable.anguloPieIzqY,    -45.0f, 45.0f);
-            sliderAng("Pie X (dorsiflexion)",   sEditable.anguloPieIzqX,    -30.0f, 30.0f);
+            ImGui::PushID("pierna_izq");
+            sliderAng("Lateral Z",      sEditable.anguloMusloIzq,    -60.0f, 60.0f);
+            sliderAng("Sagital X",      sEditable.anguloMusloIzqX,   -90.0f, 90.0f);
+            sliderAng("Rodilla Z",      sEditable.anguloRodillaIzq,   0.0f, 90.0f);
+            sliderAng("Pie Y (axial)",  sEditable.anguloPieIzqY,     -45.0f, 45.0f);
+            sliderAng("Pie X (flex)",   sEditable.anguloPieIzqX,     -30.0f, 30.0f);
+            ImGui::PopID();
         }
 
         if (ImGui::CollapsingHeader("Carga ergonomica"))

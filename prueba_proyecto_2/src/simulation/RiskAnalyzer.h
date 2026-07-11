@@ -28,8 +28,10 @@ public:
 
 private:
     // Funciones por zona (devuelven 0-100)
-    float calcularRiesgoCuello(const ScenarioData& s)   const;
-    float calcularRiesgoLumbar(const ScenarioData& s)   const;
-    float calcularRiesgoHombros(const ScenarioData& s)  const;
-    float calcularRiesgoRodillas(const ScenarioData& s) const;
+    float calcularRiesgoCuello(const ScenarioData& s)      const;
+    float calcularRiesgoLumbar(const ScenarioData& s)      const;
+    float calcularRiesgoHombroDer(const ScenarioData& s)   const;
+    float calcularRiesgoHombroIzq(const ScenarioData& s)   const;
+    float calcularRiesgoRodillaDer(const ScenarioData& s)  const;
+    float calcularRiesgoRodillaIzq(const ScenarioData& s)  const;
 };

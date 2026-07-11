@@ -92,7 +92,7 @@ void HumanBody::inicializar()
         pivH.indicePadre = -1;
         pivH.escala = {1.0f, 1.0f, 1.0f}; // NEUTRO: hijos heredan escala 1 (sin distorsión)
         pivH.posicion = {xH, 4.90f, 0.0f}; // exactamente en la articulación del hombro
-        pivH.zona = ZonaRiesgo::Hombros;
+        pivH.zona = (xSign < 0) ? ZonaRiesgo::HombroIzq : ZonaRiesgo::HombroDer;
         pivH.color = {0.65f, 0.90f, 0.65f};
         const int iPivH = agregarParte(pivH);
 
@@ -100,7 +100,7 @@ void HumanBody::inicializar()
         BodyPart bs;
         bs.nombre = "BrazoSup" + lado;
         bs.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        bs.zona = ZonaRiesgo::Hombros;
+        bs.zona = (xSign < 0) ? ZonaRiesgo::HombroIzq : ZonaRiesgo::HombroDer;
         bs.indicePadre = iPivH;
         bs.escala = {0.34f, 1.10f, 0.34f};
         bs.posicion = {0.0f, 0.0f, 0.0f}; // relativo al pivote
@@ -169,7 +169,7 @@ void HumanBody::inicializar()
         BodyPart pivCad;
         pivCad.nombre = "PivCadera" + lado;
         pivCad.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        pivCad.zona = ZonaRiesgo::Rodillas;
+        pivCad.zona = (xSign < 0) ? ZonaRiesgo::RodillaIzq : ZonaRiesgo::RodillaDer;
         pivCad.indicePadre = -1;
         pivCad.escala = {1.0f, 1.0f, 1.0f}; // neutro
         const float xCad = xSign * 0.38f; // separación aumentada (antes 0.30)
@@ -181,7 +181,7 @@ void HumanBody::inicializar()
         BodyPart ms;
         ms.nombre = "Muslo" + lado;
         ms.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        ms.zona = ZonaRiesgo::Rodillas;
+        ms.zona = (xSign < 0) ? ZonaRiesgo::RodillaIzq : ZonaRiesgo::RodillaDer;
         ms.indicePadre = iPivCad;
         ms.escala = {0.40f, 1.10f, 0.40f};
         ms.posicion = {0.0f, 0.0f, 0.0f};
@@ -193,7 +193,7 @@ void HumanBody::inicializar()
         BodyPart pivRod;
         pivRod.nombre = "PivRodilla" + lado;
         pivRod.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        pivRod.zona = ZonaRiesgo::Rodillas;
+        pivRod.zona = (xSign < 0) ? ZonaRiesgo::RodillaIzq : ZonaRiesgo::RodillaDer;
         pivRod.indicePadre = iPivCad;
         pivRod.escala = {1.0f, 1.0f, 1.0f}; // neutro
         pivRod.posicion = {0.0f, -1.10f, 0.0f};
@@ -204,7 +204,7 @@ void HumanBody::inicializar()
         BodyPart pr;
         pr.nombre = "Pierna" + lado;
         pr.tipoMalla = BodyPart::TipoMalla::Cilindro;
-        pr.zona = ZonaRiesgo::Rodillas;
+        pr.zona = (xSign < 0) ? ZonaRiesgo::RodillaIzq : ZonaRiesgo::RodillaDer;
         pr.indicePadre = iPivRod;
         pr.escala = {0.35f, 1.00f, 0.35f};
         pr.posicion = {0.0f, 0.0f, 0.0f};
@@ -414,8 +414,8 @@ void HumanBody::setScenario(const ScenarioData& escenario)
                 if (p.nombre == nm)
                     { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y, p.rotacionBase.z + z}; break; }
         };
-        setRotRod("PivRodillaDer", -escenario.anguloRodilla, -escenario.anguloRodillaX);
-        setRotRod("PivRodillaIzq",  escenario.anguloRodilla, -escenario.anguloRodillaX);
+        setRotRod("PivRodillaDer", -escenario.anguloRodillaDer, -escenario.anguloRodillaDerX);
+        setRotRod("PivRodillaIzq",  escenario.anguloRodillaIzq, -escenario.anguloRodillaIzqX);
     }
 
     // ---- Tobillo / Pie: rotación independiente del pie (sin mover la pantorrilla) ----
@@ -467,10 +467,12 @@ void HumanBody::applyRisk(const RiskData& riesgo)
     {
         switch (p.zona)
         {
-        case ZonaRiesgo::Cuello:   p.color = colorRiesgo(riesgo.riesgoCuello);   break;
-        case ZonaRiesgo::Lumbar:   p.color = colorRiesgo(riesgo.riesgoLumbar);   break;
-        case ZonaRiesgo::Hombros:  p.color = colorRiesgo(riesgo.riesgoHombros);  break;
-        case ZonaRiesgo::Rodillas: p.color = colorRiesgo(riesgo.riesgoRodillas); break;
+        case ZonaRiesgo::Cuello:     p.color = colorRiesgo(riesgo.riesgoCuello);     break;
+        case ZonaRiesgo::Lumbar:     p.color = colorRiesgo(riesgo.riesgoLumbar);     break;
+        case ZonaRiesgo::HombroDer:  p.color = colorRiesgo(riesgo.riesgoHombroDer);  break;
+        case ZonaRiesgo::HombroIzq:  p.color = colorRiesgo(riesgo.riesgoHombroIzq);  break;
+        case ZonaRiesgo::RodillaDer: p.color = colorRiesgo(riesgo.riesgoRodillaDer); break;
+        case ZonaRiesgo::RodillaIzq: p.color = colorRiesgo(riesgo.riesgoRodillaIzq); break;
         case ZonaRiesgo::Ninguna:
         default: break;
         }

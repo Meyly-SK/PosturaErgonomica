@@ -16,8 +16,10 @@ enum class ZonaRiesgo
     Ninguna,
     Cuello,
     Lumbar,
-    Hombros,
-    Rodillas
+    HombroDer,   // brazo/hombro derecho
+    HombroIzq,   // brazo/hombro izquierdo
+    RodillaDer,  // pierna/rodilla derecha
+    RodillaIzq   // pierna/rodilla izquierda
 };
 
 // --------------------------------------------------------------------------
@@ -72,9 +74,11 @@ struct ScenarioData
     float anguloMusloDerX     = 0.0f;   // muslo der adelante(+) / atrás(-) — clave para "pierna levantada"
 
     // ---- Rodillas (pantorrilla hacia atrás desde rodilla) ----
-    // Eje Z: dobla lateral  Eje X: dobla sagital
-    float anguloRodilla       = 0.0f;   // ambas rodillas eje Z (0=extendida, +90=doblada)
-    float anguloRodillaX      = 0.0f;   // ambas rodillas eje X (sagital)
+    // Ahora separadas por lado para permitir movimiento independiente
+    float anguloRodillaDer    = 0.0f;   // rodilla derecha eje Z (0=extendida, +90=doblada)
+    float anguloRodillaIzq    = 0.0f;   // rodilla izquierda eje Z
+    float anguloRodillaDerX   = 0.0f;   // rodilla derecha eje X (sagital)
+    float anguloRodillaIzqX   = 0.0f;   // rodilla izquierda eje X (sagital)
 
     // ---- Tobillo / Pie ----
     // Eje Y: rotación axial del pie (dedo apunta a izq/der = pronación/supinación)
@@ -133,7 +137,8 @@ inline ScenarioData interpolar(const ScenarioData& a, const ScenarioData& b, flo
     LERP(anguloCodoIzqX);      LERP(anguloCodoDerX);
     LERP(anguloMusloIzq);      LERP(anguloMusloDer);
     LERP(anguloMusloIzqX);     LERP(anguloMusloDerX);
-    LERP(anguloRodilla);       LERP(anguloRodillaX);
+    LERP(anguloRodillaDer);    LERP(anguloRodillaIzq);
+    LERP(anguloRodillaDerX);   LERP(anguloRodillaIzqX);
     LERP(anguloPieDerY);       LERP(anguloPieIzqY);
     LERP(anguloPieDerX);       LERP(anguloPieIzqX);
     LERP(anguloManoDerY);      LERP(anguloManoIzqY);
@@ -147,13 +152,16 @@ inline ScenarioData interpolar(const ScenarioData& a, const ScenarioData& b, flo
 
 // --------------------------------------------------------------------------
 // RiskData — resultado del análisis ergonómico por zona
+// Separado por lado (Der/Izq) para colorear solo el lado afectado.
 // Escala: 0 (sin riesgo) a 100 (riesgo máximo)
 // Verde: <30 | Amarillo: 30-60 | Rojo: >60
 // --------------------------------------------------------------------------
 struct RiskData
 {
-    float riesgoCuello   = 0.0f;
-    float riesgoLumbar   = 0.0f;
-    float riesgoHombros  = 0.0f;
-    float riesgoRodillas = 0.0f;
+    float riesgoCuello     = 0.0f;
+    float riesgoLumbar     = 0.0f;
+    float riesgoHombroDer  = 0.0f;   // hombro/brazo derecho
+    float riesgoHombroIzq  = 0.0f;   // hombro/brazo izquierdo
+    float riesgoRodillaDer = 0.0f;   // rodilla/pierna derecha
+    float riesgoRodillaIzq = 0.0f;   // rodilla/pierna izquierda
 };

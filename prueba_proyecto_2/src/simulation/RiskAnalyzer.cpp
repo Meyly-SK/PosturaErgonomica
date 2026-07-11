@@ -23,10 +23,12 @@ static float normalizar(float val, float maximo)
 RiskData RiskAnalyzer::analizar(const ScenarioData& escenario) const
 {
     RiskData r;
-    r.riesgoCuello   = calcularRiesgoCuello(escenario);
-    r.riesgoLumbar   = calcularRiesgoLumbar(escenario);
-    r.riesgoHombros  = calcularRiesgoHombros(escenario);
-    r.riesgoRodillas = calcularRiesgoRodillas(escenario);
+    r.riesgoCuello     = calcularRiesgoCuello(escenario);
+    r.riesgoLumbar     = calcularRiesgoLumbar(escenario);
+    r.riesgoHombroDer  = calcularRiesgoHombroDer(escenario);
+    r.riesgoHombroIzq  = calcularRiesgoHombroIzq(escenario);
+    r.riesgoRodillaDer = calcularRiesgoRodillaDer(escenario);
+    r.riesgoRodillaIzq = calcularRiesgoRodillaIzq(escenario);
     return r;
 }
 
@@ -75,35 +77,52 @@ float RiskAnalyzer::calcularRiesgoLumbar(const ScenarioData& s) const
 //   Peso de la carga                → hasta 30 pts  (máximo: 10 kg)
 //   Tiempo de exposición            → hasta 20 pts  (máximo: 30 min)
 // ---------------------------------------------------------------------------
-float RiskAnalyzer::calcularRiesgoHombros(const ScenarioData& s) const
+// ---------------------------------------------------------------------------
+// Zona: HOMBRO DERECHO
+// ---------------------------------------------------------------------------
+float RiskAnalyzer::calcularRiesgoHombroDer(const ScenarioData& s) const
 {
-    // Tomar el peor brazo (mayor elevación)
-    const float maxBrazo = std::max(std::abs(s.anguloBrazoDer), std::abs(s.anguloBrazoIzq));
-
     float r = 0.0f;
-    r += normalizar(maxBrazo,           90.0f) * 50.0f;
+    r += normalizar(s.anguloBrazoDer,   90.0f) * 50.0f;
     r += normalizar(s.pesoCarga,        10.0f) * 30.0f;
     r += normalizar(s.tiempoExposicion, 30.0f) * 20.0f;
     return glm::clamp(r, 0.0f, 100.0f);
 }
 
 // ---------------------------------------------------------------------------
-// Zona: RODILLAS / CADERAS
-//
-// Factores:
-//   Ángulo muslo (cadera)     → hasta 40 pts  (máximo: 90°)
-//   Flexión de rodilla        → hasta 30 pts  (máximo: 90°)
-//   Peso de la carga          → hasta 20 pts  (máximo: 30 kg)
-//   Tiempo de exposición      → hasta 10 pts  (máximo: 60 min)
+// Zona: HOMBRO IZQUIERDO
 // ---------------------------------------------------------------------------
-float RiskAnalyzer::calcularRiesgoRodillas(const ScenarioData& s) const
+float RiskAnalyzer::calcularRiesgoHombroIzq(const ScenarioData& s) const
 {
-    const float maxMuslo = std::max(std::abs(s.anguloMusloDer), std::abs(s.anguloMusloIzq));
-
     float r = 0.0f;
-    r += normalizar(maxMuslo,           90.0f) * 40.0f;
-    r += normalizar(s.anguloRodilla,    90.0f) * 30.0f;
-    r += normalizar(s.pesoCarga,        30.0f) * 20.0f;
-    r += normalizar(s.tiempoExposicion, 60.0f) * 10.0f;
+    r += normalizar(s.anguloBrazoIzq,   90.0f) * 50.0f;
+    r += normalizar(s.pesoCarga,        10.0f) * 30.0f;
+    r += normalizar(s.tiempoExposicion, 30.0f) * 20.0f;
+    return glm::clamp(r, 0.0f, 100.0f);
+}
+
+// ---------------------------------------------------------------------------
+// Zona: RODILLA DERECHA
+// ---------------------------------------------------------------------------
+float RiskAnalyzer::calcularRiesgoRodillaDer(const ScenarioData& s) const
+{
+    float r = 0.0f;
+    r += normalizar(s.anguloMusloDer,    90.0f) * 40.0f;
+    r += normalizar(s.anguloRodillaDer,  90.0f) * 30.0f;
+    r += normalizar(s.pesoCarga,         30.0f) * 20.0f;
+    r += normalizar(s.tiempoExposicion,  60.0f) * 10.0f;
+    return glm::clamp(r, 0.0f, 100.0f);
+}
+
+// ---------------------------------------------------------------------------
+// Zona: RODILLA IZQUIERDA
+// ---------------------------------------------------------------------------
+float RiskAnalyzer::calcularRiesgoRodillaIzq(const ScenarioData& s) const
+{
+    float r = 0.0f;
+    r += normalizar(s.anguloMusloIzq,    90.0f) * 40.0f;
+    r += normalizar(s.anguloRodillaIzq,  90.0f) * 30.0f;
+    r += normalizar(s.pesoCarga,         30.0f) * 20.0f;
+    r += normalizar(s.tiempoExposicion,  60.0f) * 10.0f;
     return glm::clamp(r, 0.0f, 100.0f);
 }
