@@ -300,6 +300,8 @@ void App::actualizar(float deltaTiempo)
         gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
         gEscenarioDestino = gEscenarios.getActual();
         gProgresoTransicion = 0.0f;
+        // Si el editor libre está activo, resetear al nuevo escenario base
+        if (gModoLibre) gEscenarioLibre = gEscenarios.getActual();
     }
     else if (accionUI.accion == AccionUI::Siguiente)
     {
@@ -308,6 +310,7 @@ void App::actualizar(float deltaTiempo)
         gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
         gEscenarioDestino = gEscenarios.getActual();
         gProgresoTransicion = 0.0f;
+        if (gModoLibre) gEscenarioLibre = gEscenarios.getActual();
     }
     else if (accionUI.accion == AccionUI::IrA)
     {
@@ -316,6 +319,7 @@ void App::actualizar(float deltaTiempo)
         gEscenarioOrigen  = interpolar(gEscenarioOrigen, gEscenarioDestino, t);
         gEscenarioDestino = gEscenarios.getActual();
         gProgresoTransicion = 0.0f;
+        if (gModoLibre) gEscenarioLibre = gEscenarios.getActual();
     }
 }
 

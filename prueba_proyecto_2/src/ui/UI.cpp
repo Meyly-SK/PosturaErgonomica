@@ -209,13 +209,21 @@ ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios,
         static ScenarioData sEditable;
         static bool sInicializado = false;
 
-        // Reinicializar si posturaModoLibre cambió externamente (al activar el modo)
-        // Usamos un hash simple: detectamos si se activó comparando con un flag
-        static bool sModoAnterior = false;
-        if (!sModoAnterior && modoLibreActivo)
+        // Reinicializar cuando:
+        //   1. El modo se activa (false → true)
+        //   2. El escenario activo cambió mientras el modo estaba activo
+        static bool sModoAnterior   = false;
+        static int  sIndiceAnterior = -1;
+        const  int  indiceActual    = escenarios.getIndiceActual();
+
+        const bool activandoModo      = (!sModoAnterior && modoLibreActivo);
+        const bool cambioDeEscenario  = (modoLibreActivo && sIndiceAnterior != indiceActual);
+
+        if (activandoModo || cambioDeEscenario)
         {
-            sEditable = posturaModoLibre;
-            sInicializado = true;
+            sEditable       = posturaModoLibre;
+            sInicializado   = true;
+            sIndiceAnterior = indiceActual;
         }
         sModoAnterior = modoLibreActivo;
 
