@@ -107,6 +107,8 @@ bool App::inicializar()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // Ventana redimensionable: GLFW_RESIZABLE es true por defecto, lo dejamos explícito
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     gVentana = glfwCreateWindow(800, 600, "ErgoSim 3D", nullptr, nullptr);
     if (!gVentana)
@@ -116,6 +118,14 @@ bool App::inicializar()
     }
 
     glfwMakeContextCurrent(gVentana);
+
+    // Callback de redimensionamiento: actualiza viewport y aspecto de cámara
+    glfwSetFramebufferSizeCallback(gVentana, [](GLFWwindow*, int ancho, int alto)
+    {
+        if (alto == 0) alto = 1;   // evitar división por cero
+        glViewport(0, 0, ancho, alto);
+        gCamara.setAspecto(static_cast<float>(ancho), static_cast<float>(alto));
+    });
 
     if (glewInit() != GLEW_OK)
     {
