@@ -45,6 +45,10 @@ static Mesh gEsferaN;
 // Posición de la luz (fija, espacio mundo)
 static const glm::vec3 kPosLuz = {2.0f, 6.0f, 4.0f};
 
+// Entorno visual: piso y pared trasera
+static Mesh gPisoN;
+static Mesh gParedN;
+
 // Textura de madera
 static Textura gTexturaMadera;
 
@@ -149,6 +153,10 @@ bool App::inicializar()
         gCuboN     = PrimitiveFactory::crearCuboUVNormal();
         gCilindroN = PrimitiveFactory::crearCilindroUVNormal(0.5f, 1.0f, 20);
         gEsferaN   = PrimitiveFactory::crearEsferaUVNormal(0.5f, 20, 12);
+
+        // Entorno: piso (cubo muy aplanado) y pared trasera
+        gPisoN  = PrimitiveFactory::crearCuboUVNormal();
+        gParedN = PrimitiveFactory::crearCuboUVNormal();
 
         // Cargar textura de madera (ruta relativa al directorio de trabajo del exe)
         // El exe se genera en x64/Debug/, así que la ruta es relativa a ahí.
@@ -330,10 +338,28 @@ void App::actualizar(float deltaTiempo)
 
 void App::renderizar()
 {
-    glClearColor(0.10f, 0.10f, 0.15f, 1.0f);
+    glClearColor(0.12f, 0.15f, 0.22f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     gCuerpo.actualizarJerarquia();
+
+    // ---- Dibujar entorno (piso y pared trasera) ----
+    if (gTexturaMadera.estaLista())
+    {
+        // Piso: cubo muy aplanado, centrado en Y=0, tamaño 6x0.1x6
+        glm::mat4 modeloPiso = glm::mat4(1.0f);
+        modeloPiso = glm::translate(modeloPiso, {0.0f, -0.05f, 0.5f});
+        modeloPiso = glm::scale(modeloPiso, {6.0f, 0.10f, 6.0f});
+        gRenderer.dibujarConPhong(gPisoN, modeloPiso, {0.55f, 0.50f, 0.45f},
+                                  gCamara, gTexturaMadera, 0.05f, kPosLuz);
+
+        // Pared trasera: cubo delgado detrás del muñeco
+        glm::mat4 modeloPared = glm::mat4(1.0f);
+        modeloPared = glm::translate(modeloPared, {0.0f, 3.5f, -3.5f});
+        modeloPared = glm::scale(modeloPared, {8.0f, 8.0f, 0.15f});
+        gRenderer.dibujarConPhong(gParedN, modeloPared, {0.20f, 0.22f, 0.28f},
+                                  gCamara, gTexturaMadera, 0.02f, kPosLuz);
+    }
 
     // Usar Phong si textura y normales están listas, de lo contrario fallback
     if (gTexturaMadera.estaLista())
