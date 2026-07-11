@@ -61,6 +61,10 @@ static ScenarioData gEscenarioDestino;  // postura "a donde vamos"
 static float        gProgresoTransicion = 1.0f;  // 1.0 = completada (sin transición activa)
 static const float  gDuracionTransicion = 0.85f; // segundos
 
+// Modo editor de postura libre
+static bool         gModoLibre    = false;
+static ScenarioData gEscenarioLibre;   // postura editable en tiempo real
+
 int App::ejecutar()
 {
     if (!inicializar())
@@ -255,9 +259,38 @@ void App::actualizar(float deltaTiempo)
     const RiskData riesgo = gAnalizador.analizar(escenarioVisible);
     gCuerpo.applyRisk(riesgo);
 
-    // H5 + H6-D: preparar frame de UI y procesar botones
+    // Modo editor libre: usar postura editable en vez del escenario base
+    if (gModoLibre)
+    {
+        gCuerpo.setScenario(gEscenarioLibre);
+        const RiskData riesgoLibre = gAnalizador.analizar(gEscenarioLibre);
+        gCuerpo.applyRisk(riesgoLibre);
+    }
+
+    // H5 + editor libre: preparar frame de UI y procesar botones
     UI::nuevaFrame();
-    const ResultadoUI accionUI = UI::dibujarPanel(gEscenarios, riesgo);
+    const ResultadoUI accionUI = UI::dibujarPanel(
+        gEscenarios, riesgo, gModoLibre, gEscenarioLibre);
+
+    // Toggle del modo editor libre
+    if (accionUI.toggleModoLibre)
+    {
+        gModoLibre = !gModoLibre;
+        if (gModoLibre)
+        {
+            // Al activar: copiar el escenario base actual como punto de partida
+            gEscenarioLibre = gEscenarios.getActual();
+        }
+    }
+
+    // Si el editor libre modificó la postura, actualizar gEscenarioLibre
+    if (gModoLibre && accionUI.posturaModificada)
+    {
+        gEscenarioLibre = accionUI.posturaLibre;
+        gCuerpo.setScenario(gEscenarioLibre);
+        const RiskData riesgoLibre = gAnalizador.analizar(gEscenarioLibre);
+        gCuerpo.applyRisk(riesgoLibre);
+    }
 
     // Procesar la acción solicitada por los botones de la UI
     if (accionUI.accion == AccionUI::Anterior)

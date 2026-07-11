@@ -55,7 +55,10 @@ void UI::nuevaFrame()
 //   - Barras de progreso con colores para cada zona de riesgo
 //   - Controles disponibles
 // ---------------------------------------------------------------------------
-ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios, const RiskData& riesgo)
+ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios,
+                              const RiskData& riesgo,
+                              bool modoLibreActivo,
+                              const ScenarioData& posturaModoLibre)
 {
     ResultadoUI resultado;
     const ScenarioData& s = escenarios.getActual();
@@ -187,6 +190,114 @@ ResultadoUI UI::dibujarPanel(const ScenarioManager& escenarios, const RiskData& 
         resultado.accion = AccionUI::Siguiente;
 
     ImGui::Separator();
+
+    // ---- Toggle modo editor de postura libre ----
+    ImGui::Separator();
+    {
+        bool activo = modoLibreActivo;
+        if (ImGui::Checkbox(" Postura libre (editor)", &activo))
+            resultado.toggleModoLibre = true;
+    }
+
+    // ---- Panel del editor (solo visible cuando modoLibreActivo) ----
+    if (modoLibreActivo)
+    {
+        // Estado estático para los sliders: se inicializa desde posturaModoLibre
+        // cuando el modo se activa (gestionado externamente vía posturaModoLibre).
+        static ScenarioData sEditable;
+        static bool sInicializado = false;
+
+        // Reinicializar si posturaModoLibre cambió externamente (al activar el modo)
+        // Usamos un hash simple: detectamos si se activó comparando con un flag
+        static bool sModoAnterior = false;
+        if (!sModoAnterior && modoLibreActivo)
+        {
+            sEditable = posturaModoLibre;
+            sInicializado = true;
+        }
+        sModoAnterior = modoLibreActivo;
+
+        if (!sInicializado) sEditable = posturaModoLibre;
+
+        bool cambiado = false;
+
+        // Helper macro para un slider de ángulo
+        auto sliderAng = [&](const char* label, float& val, float vmin, float vmax) {
+            if (ImGui::SliderFloat(label, &val, vmin, vmax, "%.0f deg"))
+                cambiado = true;
+        };
+        auto sliderM = [&](const char* label, float& val, float vmin, float vmax, const char* fmt) {
+            if (ImGui::SliderFloat(label, &val, vmin, vmax, fmt))
+                cambiado = true;
+        };
+
+        ImGui::Spacing();
+
+        if (ImGui::CollapsingHeader("Torso"))
+        {
+            sliderAng("Flex. adelante/atras", sEditable.anguloTorso, -90.0f, 90.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Cuello"))
+        {
+            sliderAng("Flexion",   sEditable.anguloCuello,        -45.0f, 45.0f);
+            sliderAng("Lateral",   sEditable.anguloLateralCuello, -30.0f, 30.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Brazo derecho"))
+        {
+            sliderAng("Elevacion Z (izq/der)",  sEditable.anguloBrazoDer,  -90.0f, 90.0f);
+            sliderAng("Sagital X (ad/at)",       sEditable.anguloBrazoDerX, -90.0f, 90.0f);
+            sliderAng("Codo Z (dobla)",          sEditable.anguloCodoDer,    0.0f, 150.0f);
+            sliderAng("Codo X (sagital)",        sEditable.anguloCodoDerX, -90.0f, 90.0f);
+            sliderAng("Muneca Y (pronacioon)",   sEditable.anguloManoDerY,  -90.0f, 90.0f);
+            sliderAng("Muneca X (flexion)",      sEditable.anguloManoDerX,  -60.0f, 60.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Brazo izquierdo"))
+        {
+            sliderAng("Elevacion Z (izq/der)",  sEditable.anguloBrazoIzq,  -90.0f, 90.0f);
+            sliderAng("Sagital X (ad/at)",       sEditable.anguloBrazoIzqX, -90.0f, 90.0f);
+            sliderAng("Codo Z (dobla)",          sEditable.anguloCodoIzq,    0.0f, 150.0f);
+            sliderAng("Codo X (sagital)",        sEditable.anguloCodoIzqX, -90.0f, 90.0f);
+            sliderAng("Muneca Y (pronacion)",    sEditable.anguloManoIzqY,  -90.0f, 90.0f);
+            sliderAng("Muneca X (flexion)",      sEditable.anguloManoIzqX,  -60.0f, 60.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Pierna derecha"))
+        {
+            sliderAng("Lateral Z (izq/der)",   sEditable.anguloMusloDer,   -60.0f, 60.0f);
+            sliderAng("Sagital X (ad/at)",      sEditable.anguloMusloDerX,  -90.0f, 90.0f);
+            sliderAng("Rodilla Z",              sEditable.anguloRodilla,     0.0f, 90.0f);
+            sliderAng("Pie Y (giro axial)",     sEditable.anguloPieDerY,    -45.0f, 45.0f);
+            sliderAng("Pie X (dorsiflexion)",   sEditable.anguloPieDerX,    -30.0f, 30.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Pierna izquierda"))
+        {
+            sliderAng("Lateral Z (izq/der)",   sEditable.anguloMusloIzq,   -60.0f, 60.0f);
+            sliderAng("Sagital X (ad/at)",      sEditable.anguloMusloIzqX,  -90.0f, 90.0f);
+            sliderAng("Rodilla Z",              sEditable.anguloRodillaX,    0.0f, 90.0f);
+            sliderAng("Pie Y (giro axial)",     sEditable.anguloPieIzqY,    -45.0f, 45.0f);
+            sliderAng("Pie X (dorsiflexion)",   sEditable.anguloPieIzqX,    -30.0f, 30.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Carga ergonomica"))
+        {
+            sliderM("Peso (kg)",    sEditable.pesoCarga,       0.0f, 50.0f, "%.1f kg");
+            sliderM("Distancia (m)",sEditable.distanciaCarga,  0.0f,  1.0f, "%.2f m");
+            sliderM("Tiempo (min)", sEditable.tiempoExposicion, 0.0f, 60.0f, "%.0f min");
+        }
+
+        if (cambiado)
+        {
+            resultado.posturaModificada = true;
+            resultado.posturaLibre      = sEditable;
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+    }
 
     // ---- Controles ----
     ImGui::TextDisabled("N/P = cambiar escenario");
