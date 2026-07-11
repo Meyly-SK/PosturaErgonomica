@@ -323,6 +323,23 @@ void HumanBody::setScenario(const ScenarioData& escenario)
         }
     };
 
+    // ---- CUELLO (rotación independiente: flexión + lateral) ----
+    // El cuello se rota localmente sobre su posición base.
+    // Se aplica antes del torso para que el torso lo arrastre junto con él.
+    {
+        auto setRotCuello = [&](const std::string& nm, float x, float z) {
+            for (BodyPart& p : mPartes)
+                if (p.nombre == nm)
+                {
+                    p.rotacionEulerGrados.x = p.rotacionBase.x + x;
+                    p.rotacionEulerGrados.z = p.rotacionBase.z + z;
+                    break;
+                }
+        };
+        setRotCuello("Cuello",  escenario.anguloCuello, escenario.anguloLateralCuello);
+        setRotCuello("Cabeza",  escenario.anguloCuello, escenario.anguloLateralCuello);
+    }
+
     // ---- TORSO PRIMERO (mueve torso + pivotes de hombro + pivotes de cadera) ----
     // Con jerarquía real, mover el torso = mover los pivotes de hombro (absolutos).
     // Los brazos siguen automáticamente por herencia de jerarquía.
