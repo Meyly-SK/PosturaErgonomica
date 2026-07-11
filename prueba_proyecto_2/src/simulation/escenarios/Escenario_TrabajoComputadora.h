@@ -41,7 +41,8 @@ inline ScenarioData crearEscenarioTrabajoComputadora()
     s.anguloBrazoIzqX = -30.0f;
 
     // ---- Codos: doblados para teclear (~60°) ----
-    s.anguloCodoDer   = 60.0f;
+    // Con la nueva convención: anguloCodoDer = flexión eje X (positivo = doblar adelante)
+    s.anguloCodoDer   = 60.0f;   // dobla el codo hacia adelante
     s.anguloCodoIzq   = 60.0f;
 
     // ---- Muñecas: leve extension dorsal al teclear ----

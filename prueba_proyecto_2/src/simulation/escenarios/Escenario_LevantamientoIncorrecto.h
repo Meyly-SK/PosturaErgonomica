@@ -40,11 +40,13 @@ inline ScenarioData crearEscenarioLevantamientoIncorrecto()
     s.anguloBrazoDer  = 25.0f;   // ligeramente elevados/abiertos (eje Z)
     s.anguloBrazoIzq  = 25.0f;
 
-    // ---- Codos: doblados tomando la carga (eje X = dobla hacia abajo) ----
-    s.anguloCodoDerX  = 35.0f;   // codo derecho dobla hacia abajo/adelante
-    s.anguloCodoIzqX  = 35.0f;   // codo izquierdo
-    s.anguloCodoDer   = 10.0f;   // leve doblez lateral
-    s.anguloCodoIzq   = 10.0f;
+    // ---- Codos: doblados tomando la carga ----
+    // Con la nueva convencion: anguloCodoDer = flexion sagital (doblar el codo hacia adelante)
+    //                          anguloCodoDerX = lateral (eje Z)
+    s.anguloCodoDer   = 35.0f;   // codo dobla hacia adelante/arriba tomando la carga
+    s.anguloCodoIzq   = 35.0f;
+    s.anguloCodoDerX  = 10.0f;   // leve apertura lateral
+    s.anguloCodoIzqX  = 10.0f;
 
     // ---- Piernas casi rectas (postura INCORRECTA para levantar) ----
     s.anguloMusloDer  = 5.0f;

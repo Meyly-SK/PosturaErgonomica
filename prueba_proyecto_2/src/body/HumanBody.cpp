@@ -403,13 +403,28 @@ void HumanBody::setScenario(const ScenarioData& escenario)
     }
 
     // ---- Codo: rota el PivCodo relativo al hombro ----
+    // anguloCodoDer (principal): flexión del antebrazo hacia adelante = eje X sagital
+    //   Positivo = antebrazo se acerca al hombro hacia adelante (doblar el codo)
+    //   Negativo = antebrazo se extiende hacia atrás
+    // anguloCodoDerX: movimiento lateral del codo = eje Z
     {
-        auto setRotCodo = [&](const std::string& nm, float z, float x) {
+        auto setRotCodo = [&](const std::string& nm, float flexion, float lateral) {
             for (BodyPart& p : mPartes)
                 if (p.nombre == nm)
-                    { p.rotacionEulerGrados = {p.rotacionBase.x + x, p.rotacionBase.y, p.rotacionBase.z + z}; break; }
+                    {
+                        // eje X = flexión sagital (principal = doblar codo hacia adelante)
+                        // eje Z = lateral (secundario)
+                        p.rotacionEulerGrados = {
+                            p.rotacionBase.x + flexion,   // X: flexión (negado porque + = adelante)
+                            p.rotacionBase.y,
+                            p.rotacionBase.z + lateral    // Z: lateral
+                        };
+                        break;
+                    }
         };
-        setRotCodo("PivCodoDer",  escenario.anguloCodoDer,  -escenario.anguloCodoDerX);
+        // anguloCodoDer > 0 = doblar hacia adelante
+        // Eje X positivo en nuestro sistema = hacia atrás → negamos para que + = adelante
+        setRotCodo("PivCodoDer", -escenario.anguloCodoDer,   escenario.anguloCodoDerX);
         setRotCodo("PivCodoIzq", -escenario.anguloCodoIzq,  -escenario.anguloCodoIzqX);
     }
 
